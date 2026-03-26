@@ -1,9 +1,11 @@
 ## Interface: 30300
 ## Title: |cff7fff7fM|cffffffffodern |cff7fff7fM|cffffffffap |cff7fff7fM|cffffffffarkers
-## Author: Original addon: tilr & Heallios; TBC version: Drakensangs
 ## Notes: Shows dungeon, raid, world boss, boat, zeppelin, tram & portal locations on the world map.
-## Version: 3.3
-## OptionalDeps: Atlas, AtlasQuest, WDM
+## Author: Drakensangs
+## Version: 3.4
+## OptionalDeps: Atlas, AtlasLoot, AtlasQuest, WDM, Questie-335, Mapster, ElvUI
 ## SavedVariables: ModernMapMarkersDB
 
+MarkerData.lua
 ModernMapMarkers.lua
+ModernMapMarkers_UI.lua
