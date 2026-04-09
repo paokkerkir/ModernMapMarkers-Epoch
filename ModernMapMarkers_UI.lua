@@ -809,6 +809,7 @@ local function CreateDropdowns()
 
     if findBtn then
         findBtn:SetScript("OnClick", function()
+            PlaySound("igMainMenuOptionCheckBoxOn")
             if not findPanel then
                 CreateFindPanel(findDropdown)
                 ElvUI_SkinPanel()
