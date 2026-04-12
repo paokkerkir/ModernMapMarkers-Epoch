@@ -89,8 +89,8 @@ MMM_DefaultPoints = {
         {1, 0.937, 0.355, "Emerald Dragon\n|cFF808080(Bough Shadow)|r", "worldboss", "60", nil},
         {11, 0.512, 0.108, "Emerald Dragon\n|cFF808080(Dream Bough)|r", "worldboss", "60", nil},
         -- Transport
-        {8, 0.512, 0.135, "Zeppelins to Tirisfal Glades & Grom'Gol", "zepp", "Horde", nil, {{2, 25}, {2, 22}}},
-        {8, 0.415, 0.183, "Zeppelins to Thunder Bluff & Warsong Hold", "zepp", "Horde", nil, {{1, 22}, {4, 1}}},
+        {8, 0.512, 0.135, "Zeppelins to Tirisfal Glades & Grom'Gol", "zepp", "Horde", nil, {{2, 25, "Tirisfal Glades"}, {2, 22, "Grom'Gol"}}},
+        {8, 0.415, 0.183, "Zeppelins to Thunder Bluff & Warsong Hold", "zepp", "Horde", nil, {{1, 22, "Thunder Bluff"}, {4, 1, "Warsong Hold"}}},
         {22, 0.137, 0.257, "Zeppelin to Durotar", "zepp", "Horde", nil, {1, 8}},
         {19, 0.636, 0.389, "Boat to Booty Bay", "boat", "Neutral", nil, {2, 22}},
         {5, 0.333, 0.399, "Boat to Rut'Theran Village", "boat", "Alliance", nil, {1, 18}},
@@ -152,7 +152,7 @@ MMM_DefaultPoints = {
         {29, 0.046, 0.572, "Boat to Valgarde", "boat", "Alliance", nil, {4, 6}},
         {22, 0.257, 0.73, "Boat to Ratchet", "boat", "Neutral", nil, {1, 19}},
         {25, 0.606, 0.583, "Zeppelins to Durotar, Grom'Gol & Vengeance Landing", "zepp", "Horde", nil, {{1, 8, "Durotar"}, {2, 22, "Grom'Gol"}, {4, 6, "Vengeance Landing"}}},
-        {22, 0.312, 0.298, "Zeppelins to Tirisfal Glades & Durotar", "zepp", "Horde", nil, {{2, 25}, {1, 8}}},
+        {22, 0.312, 0.298, "Zeppelins to Tirisfal Glades & Durotar", "zepp", "Horde", nil, {{2, 25, "Tirisfal Glades"}, {1, 8, "Durotar"}}},
         {21, 0.216, 0.562, "Boat to Auberdine", "boat", "Alliance", nil, {1, 5}},
         {21, 0.172, 0.251, "Boat to Valiance Keep", "boat", "Alliance", nil, {4, 1}},
         -- Portals
@@ -284,8 +284,8 @@ MMM_WdmPoints = {
         {2, 0.937, 0.355, "Emerald Dragon\n|cFF808080(Bough Shadow)|r", "worldboss", "60", nil},
         {20, 0.512, 0.108, "Emerald Dragon\n|cFF808080(Dream Bough)|r", "worldboss", "60", nil},
         -- Transport
-        {15, 0.512, 0.135, "Zeppelins to Tirisfal Glades & Grom'Gol", "zepp", "Horde", nil, {{2, 48}, {2, 42}}},
-        {15, 0.415, 0.183, "Zeppelins to Thunder Bluff & Warsong Hold", "zepp", "Horde", nil, {{1, 45}, {4, 1}}},
+        {15, 0.512, 0.135, "Zeppelins to Tirisfal Glades & Grom'Gol", "zepp", "Horde", nil, {{2, 48, "Tirisfal Glades"}, {2, 42, "Grom'Gol"}}},
+        {15, 0.415, 0.183, "Zeppelins to Thunder Bluff & Warsong Hold", "zepp", "Horde", nil, {{1, 45, "Thunder Bluff"}, {4, 1, "Warsong Hold"}}},
         {45, 0.137, 0.257, "Zeppelin to Durotar", "zepp", "Horde", nil, {1, 15}},
         {38, 0.636, 0.389, "Boat to Booty Bay", "boat", "Neutral", nil, {2, 42}},
         {12, 0.333, 0.399, "Boat to Rut'Theran Village", "boat", "Alliance", nil, {1, 37}},
@@ -360,7 +360,7 @@ MMM_WdmPoints = {
         {53, 0.046, 0.572, "Boat to Valgarde", "boat", "Alliance", nil, {4, 6}},
         {42, 0.257, 0.73, "Boat to Ratchet", "boat", "Neutral", nil, {1, 38}},
         {48, 0.606, 0.583, "Zeppelins to Durotar, Grom'Gol & Vengeance Landing", "zepp", "Horde", nil, {{1, 15, "Durotar"}, {2, 42, "Grom'Gol"}, {4, 6, "Vengeance Landing"}}},
-        {42, 0.312, 0.298, "Zeppelins to Tirisfal Glades & Durotar", "zepp", "Horde", nil, {{2, 48}, {1, 15}}},
+        {42, 0.312, 0.298, "Zeppelins to Tirisfal Glades & Durotar", "zepp", "Horde", nil, {{2, 48, "Tirisfal Glades"}, {1, 15, "Durotar"}}},
         {41, 0.216, 0.562, "Boat to Auberdine", "boat", "Alliance", nil, {1, 12}},
         {41, 0.172, 0.251, "Boat to Valiance Keep", "boat", "Alliance", nil, {4, 1}},
         -- Portals
