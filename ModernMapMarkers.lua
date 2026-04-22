@@ -17,7 +17,6 @@ local MARKER_SIZE_LARGE       = 32
 local MARKER_SIZE_SMALL       = 24
 local UPDATE_THROTTLE         = 0.1
 local MAX_POOL_SIZE           = 50
-local CONTINENT_MULTIPLIER    = 100
 local INVALID_ZONE            = 0
 
 local TEXTURES = {
@@ -57,9 +56,30 @@ local NIGHTMARE_DRAGONS = {
 -- 1=Kalimdor->2, 2=EK->1, 3=Outland->3, 4=Northrend->4
 local ATLAS_CONTINENT_MAP = {2, 1, 3, 4}
 
--- Shared between default and WDM datasets for Outland/Northrend.
-local WDM_SHARED_TYPES      = {dungeon=true, raid=true, worldboss=true}
-local WDM_SHARED_CONTINENTS = {3, 4}
+-- Internal zone name -> continent index. Used by the Find Marker panel
+-- to filter by continent, and to sanity-check zone-name references.
+-- Names are PE's internal names (from WorldMapArea.dbc), which preserve
+-- PE's typos ("Aszhara", "Darnassis", "Ogrimmar", "Hilsbrad").
+local ZONE_TO_CONTINENT = {
+    -- Kalimdor
+    Ashenvale           = 1, Aszhara        = 1, Barrens       = 1,
+    Darkshore           = 1, Darnassis      = 1, Desolace      = 1,
+    Durotar             = 1, Dustwallow     = 1, Felwood       = 1,
+    Feralas             = 1, Moonglade      = 1, Mulgore       = 1,
+    Ogrimmar            = 1, Silithus       = 1, StonetalonMountains = 1,
+    Tanaris             = 1, Teldrassil     = 1, ThousandNeedles = 1,
+    ThunderBluff        = 1, UngoroCrater   = 1, Winterspring  = 1,
+    -- Eastern Kingdoms
+    Alterac             = 2, Arathi         = 2, Badlands      = 2,
+    BlastedLands        = 2, BurningSteppes = 2, DeadwindPass  = 2,
+    DunMorogh           = 2, Duskwood       = 2, EasternPlaguelands = 2,
+    Elwynn              = 2, Hilsbrad       = 2, Hinterlands   = 2,
+    Ironforge           = 2, LochModan      = 2, Redridge      = 2,
+    SearingGorge        = 2, Silverpine     = 2, Stormwind     = 2,
+    Stranglethorn       = 2, SwampOfSorrows = 2, Tirisfal      = 2,
+    Undercity           = 2, WesternPlaguelands = 2, Westfall   = 2,
+    Wetlands            = 2,
+}
 
 -- ============================================================
 -- Cached globals
@@ -79,21 +99,21 @@ local pcall       = pcall
 -- State
 -- ============================================================
 
-local pointsByMap        = {}
+local pointsByMap        = {}        -- internalZoneName -> { entry, entry, ... }
+local zoneNameToMap      = {}        -- internalZoneName -> {continent, zoneIdx}
 local markerPool         = {}
 local markerPoolCount    = 0
 local activeMarkers      = {}
 local activeMarkersCount = 0
 local initialized        = false
-local lastContinent      = 0
-local lastZone           = 0
+local zoneNavBuilt       = false
+local buildingZoneNav    = false
+local lastZoneName       = nil
 local lastUpdateTime     = 0
 local frame              = CreateFrame("Frame")
 local updateEnabled      = false
 local flatDataCache
-local pendingOriginC
-local pendingOriginZ
-local usingWDM           = false
+local pendingOriginName
 
 -- ============================================================
 -- Global namespace  (shared with ModernMapMarkers_UI.lua)
@@ -102,17 +122,73 @@ local usingWDM           = false
 MMM = MMM or {}
 
 function MMM.ForceRedraw()
-    lastContinent = 0
-    lastZone      = 0
+    lastZoneName = nil
 end
 
--- Called by the destination popup in ModernMapMarkers_UI.lua.
-function MMM.NavigateToTransportDest(destContinent, destZone, originC, originZ)
-    pendingOriginC = originC
-    pendingOriginZ = originZ
-    PlaySoundFile("Sound\\Interface\\MapPing.wav")
-    SetMapZoom(destContinent, destZone)
+-- Build the internal-name -> (continent, zoneIdx) map by iterating every
+-- zone on continents 1 and 2 via SetMapZoom + GetMapInfo. Must be called
+-- once; guarded by zoneNavBuilt. Sets buildingZoneNav so UpdateMarkers
+-- suppresses redraws triggered by the SetMapZoom side-effects.
+local function BuildZoneNav()
+    if zoneNavBuilt then return end
+    buildingZoneNav = true
+
+    local savedC = GetCurrentMapContinent()
+    local savedZ = GetCurrentMapZone()
+
+    for c = 1, 2 do
+        local zones = { GetMapZones(c) }
+        for z = 1, #zones do
+            SetMapZoom(c, z)
+            local internal = GetMapInfo()
+            if internal then
+                zoneNameToMap[internal] = {c, z}
+            end
+        end
+    end
+
+    -- Restore prior map view (best-effort).
+    if savedC and savedC > 0 then
+        if savedZ and savedZ > 0 then
+            SetMapZoom(savedC, savedZ)
+        else
+            SetMapZoom(savedC)
+        end
+    end
+
+    zoneNavBuilt    = true
+    buildingZoneNav = false
     MMM.ForceRedraw()
+end
+
+MMM.BuildZoneNav = BuildZoneNav
+
+-- Low-level zone-name navigation. Returns true on success, false if the
+-- zone is unknown. Does not play sounds, set pendingOriginName, or force
+-- a redraw — callers decide those.
+local function NavigateByName(zoneName)
+    if not zoneNavBuilt then BuildZoneNav() end
+    local m = zoneNameToMap[zoneName]
+    if not m then
+        DEFAULT_CHAT_FRAME:AddMessage(
+            "|cFFFF0000MMM: unknown destination zone \""
+            .. tostring(zoneName) .. "\".|r")
+        return false
+    end
+    SetMapZoom(m[1], m[2])
+    return true
+end
+
+MMM.NavigateByName = NavigateByName
+
+-- Called by the destination popup in ModernMapMarkers_UI.lua.
+-- destName and originName are internal zone-name strings.
+function MMM.NavigateToTransportDest(destName, originName)
+    PlaySoundFile("Sound\\Interface\\MapPing.wav")
+    if NavigateByName(destName) then
+        pendingOriginName = originName
+        MMM.ForceRedraw()
+    end
 end
 
 function MMM.SetUpdateEnabled(state)
@@ -130,98 +206,40 @@ end
 -- ============================================================
 
 local function BuildPointIndex()
-    -- Data format (per continent bucket): { zoneID, x, y, name, type, info, atlasID [, dest] }
-    local pointsToUse = MMM_DefaultPoints
-    if IsAddOnLoaded("WDM") then
-        pointsToUse = MMM_WdmPoints
-        usingWDM    = true
-    end
-
-    for continent, entries in pairs(pointsToUse) do
-        for i = 1, #entries do
-            local p   = entries[i]
-            local key = continent * CONTINENT_MULTIPLIER + p[1]
-            local bucket = pointsByMap[key]
-            if not bucket then
-                bucket = {}
-                pointsByMap[key] = bucket
-            end
-            -- dest is embedded as p[8] for transport types; nil otherwise.
-            tinsert(bucket, {continent, p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8]})
+    -- Entry format (flat list): { zoneName, x, y, name, type, info, atlasID [, slot8] }
+    -- pointsByMap[zoneName] = { entry, entry, ... }  (entries stored verbatim)
+    for i = 1, #MMM_DefaultPoints do
+        local p    = MMM_DefaultPoints[i]
+        local zone = p[1]
+        local bucket = pointsByMap[zone]
+        if not bucket then
+            bucket = {}
+            pointsByMap[zone] = bucket
         end
-    end
-
-    -- When WDM is active, supplement continents 3 and 4 with dungeon/raid/worldboss
-    -- entries from MMM_DefaultPoints (which WDM_WdmPoints no longer carries).
-    if usingWDM then
-        for _, continent in ipairs(WDM_SHARED_CONTINENTS) do
-            local defaultEntries = MMM_DefaultPoints[continent]
-            if defaultEntries then
-                for i = 1, #defaultEntries do
-                    local p = defaultEntries[i]
-                    if WDM_SHARED_TYPES[p[5]] then
-                        local key = continent * CONTINENT_MULTIPLIER + p[1]
-                        local bucket = pointsByMap[key]
-                        if not bucket then
-                            bucket = {}
-                            pointsByMap[key] = bucket
-                        end
-                        tinsert(bucket, {continent, p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8]})
-                    end
-                end
-            end
-        end
+        tinsert(bucket, p)
     end
 end
 
--- Returns a flat list of { continent, zone, name, type, description, atlasID }
+-- Returns a flat list of { continent, zoneName, name, type, description, atlasID }
 -- for the Find Marker dropdown. Transport and portal types are excluded.
 -- Built once on first call and cached for the session.
 function MMM.GetFlatData()
     if flatDataCache then return flatDataCache end
     local result = {}
     local skip = {boat=true, zepp=true, tram=true, portal=true}
-    -- Use WDM points when WDM is active so that SetMapZoom gets the correct
-    -- zone IDs. Using DefaultPoints with WDM active would navigate to the
-    -- wrong zone because the zone IDs differ between the two datasets.
-    -- Exception: continents 3 and 4 dungeon/raid/worldboss entries are shared
-    -- between datasets, so always read those from MMM_DefaultPoints.
-    local pointsToUse = usingWDM and MMM_WdmPoints or MMM_DefaultPoints
-    for continent, entries in pairs(pointsToUse) do
-        for i = 1, #entries do
-            local p = entries[i]
-            if not skip[p[5]] and p[8] ~= "nolist" then
-                tinsert(result, {
-                    continent   = continent,
-                    zone        = p[1],
-                    name        = p[4],
-                    type        = p[5],
-                    description = p[6],
-                    atlasID     = p[7],
-                })
-            end
-        end
-    end
-    -- Supplement with default dungeon/raid/worldboss entries for Outland and
-    -- Northrend when WDM is active (WDM omits these to avoid duplication).
-    if usingWDM then
-        for _, continent in ipairs(WDM_SHARED_CONTINENTS) do
-            local defaultEntries = MMM_DefaultPoints[continent]
-            if defaultEntries then
-                for i = 1, #defaultEntries do
-                    local p = defaultEntries[i]
-                    if WDM_SHARED_TYPES[p[5]] and p[8] ~= "nolist" then
-                        tinsert(result, {
-                            continent   = continent,
-                            zone        = p[1],
-                            name        = p[4],
-                            type        = p[5],
-                            description = p[6],
-                            atlasID     = p[7],
-                        })
-                    end
-                end
-            end
+    for i = 1, #MMM_DefaultPoints do
+        local p    = MMM_DefaultPoints[i]
+        local kind = p[5]
+        local slot8 = p[8]
+        if not skip[kind] and slot8 ~= "nolist" then
+            tinsert(result, {
+                continent   = ZONE_TO_CONTINENT[p[1]],
+                zoneName    = p[1],
+                name        = p[4],
+                type        = kind,
+                description = p[6],
+                atlasID     = p[7],
+            })
         end
     end
     flatDataCache = result
@@ -447,31 +465,72 @@ local function OnWorldBossClick()
     end
 end
 
-local function OnAtlasClick()
-    if this.atlasID and AtlasFrame and AtlasOptions then
-        PlaySoundFile(SOUND_CLICK)
-        local continent = GetCurrentMapContinent()
-        local atlasType = ATLAS_CONTINENT_MAP[continent] or 1
-        local atlasZone = this.atlasID
-        if WorldMapFrame:IsVisible() and IsWorldMapFullscreen() then
-            HideUIPanel(WorldMapFrame)
+-- Resolve an atlasID to (type, zone) indices inside the currently populated
+-- ATLAS_DROPDOWNS. Accepts either a string map key (e.g. "BlackrockDepths")
+-- or, for backwards compatibility, a legacy numeric index under the
+-- continent sort layout. Returns nil, nil if unresolvable.
+local function ResolveAtlasID(atlasID, continent)
+    if type(atlasID) == "string" then
+        -- Search every dropdown list (continents + plugin categories)
+        -- for an entry whose value equals atlasID. This is sort-mode
+        -- independent and survives PE's extra/removed maps and any
+        -- plugin reordering.
+        for t, zones in pairs(ATLAS_DROPDOWNS) do
+            for z, id in pairs(zones) do
+                if id == atlasID then
+                    return t, z
+                end
+            end
         end
-        WithContinentSort(function()
-            AtlasOptions.AtlasType = atlasType
-            AtlasOptions.AtlasZone = atlasZone
-            Atlas_Refresh()
-            AtlasFrame:SetFrameStrata("FULLSCREEN")
-            local savedAutoSelect = AtlasOptions.AtlasAutoSelect
-            AtlasOptions.AtlasAutoSelect = false
-            AtlasFrame:Show()
-            AtlasOptions.AtlasAutoSelect = savedAutoSelect
-            -- Remember this page for HookAtlasToggle (manual re-opens).
-            mmmAtlasType = atlasType
-            mmmAtlasZone = atlasZone
-            mmmZoneID = ATLAS_DROPDOWNS[atlasType] and ATLAS_DROPDOWNS[atlasType][atlasZone]
-        end)
-        if AtlasQuestFrame then AtlasQuestFrame:Show() end
+        return nil, nil
     end
+    -- Legacy numeric fallback. The old data format assumed SortBy=1
+    -- (continent), with EK at type 1 and Kalimdor at type 2. This is
+    -- fragile under PE because the map list differs from stock, so new
+    -- data should use string keys instead.
+    if type(atlasID) == "number" then
+        local t = ATLAS_CONTINENT_MAP[continent] or 1
+        if ATLAS_DROPDOWNS[t] and ATLAS_DROPDOWNS[t][atlasID] then
+            return t, atlasID
+        end
+    end
+    return nil, nil
+end
+
+local function OnAtlasClick()
+    if not (this.atlasID and AtlasFrame and AtlasOptions) then return end
+    PlaySoundFile(SOUND_CLICK)
+    local atlasID = this.atlasID
+    local continent = GetCurrentMapContinent()
+    if WorldMapFrame:IsVisible() and IsWorldMapFullscreen() then
+        HideUIPanel(WorldMapFrame)
+    end
+    WithContinentSort(function()
+        -- Resolve inside the closure: WithContinentSort repopulates
+        -- ATLAS_DROPDOWNS before calling us, so the search hits the
+        -- SortBy=1 layout regardless of the user's saved sort mode.
+        local atlasType, atlasZone = ResolveAtlasID(atlasID, continent)
+        if not atlasType then
+            DEFAULT_CHAT_FRAME:AddMessage(
+                "|cFFFF0000MMM: Atlas map \""
+                .. tostring(atlasID)
+                .. "\" not available in this Atlas build.|r")
+            return
+        end
+        AtlasOptions.AtlasType = atlasType
+        AtlasOptions.AtlasZone = atlasZone
+        Atlas_Refresh()
+        AtlasFrame:SetFrameStrata("FULLSCREEN")
+        local savedAutoSelect = AtlasOptions.AtlasAutoSelect
+        AtlasOptions.AtlasAutoSelect = false
+        AtlasFrame:Show()
+        AtlasOptions.AtlasAutoSelect = savedAutoSelect
+        -- Remember this page for HookAtlasToggle (manual re-opens).
+        mmmAtlasType = atlasType
+        mmmAtlasZone = atlasZone
+        mmmZoneID = ATLAS_DROPDOWNS[atlasType] and ATLAS_DROPDOWNS[atlasType][atlasZone]
+    end)
+    if AtlasQuestFrame then AtlasQuestFrame:Show() end
 end
 
 local function StartPinHighlight(pin)
@@ -498,67 +557,87 @@ local function StartPinHighlight(pin)
     end)
 end
 
+-- Returns true if any destination of `pin` points at zone `zoneName`.
+-- Shared by OnTransportClick (same-zone highlight) and UpdateMarkers
+-- (return-transport pulse after a SetMapZoom).
+local function PinMatchesZone(pin, zoneName)
+    local d = pin.transportDest
+    if not d then return false end
+    if pin.isMultiDest then
+        for i = 1, #d do
+            if d[i][1] == zoneName then return true end
+        end
+        return false
+    elseif pin.isDualDest then
+        local a = type(d[1]) == "table" and d[1][1] or d[1]
+        local b = type(d[2]) == "table" and d[2][1] or d[2]
+        return a == zoneName or b == zoneName
+    else  -- single
+        if type(d) == "string" then return d == zoneName end
+        return d[1] == zoneName
+    end
+end
+
+-- Resolve a dest "choice" (either a string or a {"Name","nopulse"} table)
+-- to its zone name and the nopulse flag.
+local function ResolveChoice(choice)
+    if type(choice) == "string" then return choice, false end
+    return choice[1], choice[2] == "nopulse"
+end
+
 local function OnTransportClick()
     local dest = this.transportDest
     if not dest then return end
 
-    -- Three or more destinations: delegate to the popup menu.
+    -- Three or more destinations (any multi-form): delegate to popup menu.
     if this.isMultiDest then
         PlaySound("UChatScrollButton")
         MMM.ShowDestMenu(this)
         return
     end
 
-    local chosen
+    local destName, nopulse
     if this.isDualDest then
-        -- arg1 is the mouse button name in an OnClick handler
-        chosen = (arg1 == "RightButton") and dest[2] or dest[1]
+        -- arg1 is the mouse button name in an OnClick handler.
+        local choice = (arg1 == "RightButton") and dest[2] or dest[1]
+        destName, nopulse = ResolveChoice(choice)
     else
-        chosen = dest
+        -- Single dest: dest is either a bare zone-name string or a
+        -- {"Name","nopulse"} table.
+        destName, nopulse = ResolveChoice(dest)
     end
 
-    local cc = GetCurrentMapContinent()
-    local cz = GetCurrentMapZone()
+    if not zoneNavBuilt then BuildZoneNav() end
+
+    local currentName = GetMapInfo()
     PlaySoundFile("Sound\\Interface\\MapPing.wav")
 
-    -- Same-zone transport: highlight the other pin without navigating.
-    if chosen[1] == cc and chosen[2] == cz then
+    -- Same-zone transport: highlight the return pin without navigating.
+    if destName == currentName then
         local clicked = this
         for i = 1, activeMarkersCount do
             local pin = activeMarkers[i]
-            if pin and pin ~= clicked and pin.transportDest then
-                local d = pin.transportDest
-                local match
-                if pin.isMultiDest then
-                    for i = 1, #d do
-                        if d[i][1] == cc and d[i][2] == cz then
-                            match = true
-                            break
-                        end
-                    end
-                elseif pin.isDualDest then
-                    match = (d[1][1] == cc and d[1][2] == cz)
-                         or (d[2][1] == cc and d[2][2] == cz)
-                else
-                    match = (d[1] == cc and d[2] == cz)
-                end
-                if match then
-                    StartPinHighlight(pin)
-                    break
-                end
+            if pin and pin ~= clicked and pin.transportDest
+               and PinMatchesZone(pin, currentName) then
+                StartPinHighlight(pin)
+                break
             end
         end
         return
     end
 
-    -- Different-zone: navigate to destination and highlight the return marker.
-    -- If the dest carries "nopulse" the return highlight is intentionally skipped.
-    local nopulse = chosen[3] == "nopulse"
-    if not nopulse then
-        pendingOriginC = cc
-        pendingOriginZ = cz
+    -- Different zone: navigate via zoneNameToMap.
+    local m = zoneNameToMap[destName]
+    if not m then
+        DEFAULT_CHAT_FRAME:AddMessage(
+            "|cFFFF0000MMM: unknown destination zone \""
+            .. tostring(destName) .. "\".|r")
+        return
     end
-    SetMapZoom(chosen[1], chosen[2])
+    if not nopulse then
+        pendingOriginName = currentName
+    end
+    SetMapZoom(m[1], m[2])
     MMM.ForceRedraw()
 end
 
@@ -573,7 +652,34 @@ local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlas
         local nl = strfind(tooltipText, "\n")
         if nl then displayName = strsub(tooltipText, 1, nl - 1) end
         dest = nil
+    elseif dest == "nolist" then
+        -- "nolist" only suppresses Find-panel inclusion; the pin itself
+        -- has no navigable destination.
+        dest = nil
     end
+
+    -- Classify dest. Zone-name format (post-PE refactor):
+    --   nil                         -> no nav
+    --   "ZoneName"                  -> single
+    --   {"ZoneName","nopulse"}      -> single, no return-pulse
+    --   {"Zone1","Zone2"}           -> dual (left-click / right-click)
+    --     each element can also be {"Zone","nopulse"}
+    --   {{"Zone","Label"}, ...}     -> multi (popup)
+    local isSingle, isDual, isMulti = false, false, false
+    if type(dest) == "string" then
+        isSingle = true
+    elseif type(dest) == "table" then
+        if type(dest[1]) == "table" then
+            isMulti = true
+        elseif type(dest[1]) == "string" then
+            if dest[2] == "nopulse" then
+                isSingle = true
+            else
+                isDual = true
+            end
+        end
+    end
+
     local pin = GetMarkerFromPool()
     pin:SetWidth(size)
     pin:SetHeight(size)
@@ -591,21 +697,23 @@ local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlas
     pin.markerKind      = kind
     pin.atlasID         = atlasID
     pin.transportDest   = dest
-    pin.isDualDest      = dest and type(dest[1]) == "table" and #dest == 2 or false
-    pin.isMultiDest     = dest and type(dest[1]) == "table" and #dest >= 3 or false
+    pin.isDualDest      = isDual
+    pin.isMultiDest     = isMulti
     pin.isEmeraldDragon = (kind == "worldboss" and tooltipInfo == "60"
                            and not WORLD_BOSS_MAP[tooltipText]) or nil
 
-    if pin.isMultiDest then
-        -- Hint line lists all destinations; the popup handles actual navigation.
+    if isMulti then
+        -- Hint lists labels; the popup handles navigation.
         local parts = {}
         for i = 1, #dest do
-            tinsert(parts, dest[i][3] or ("Destination " .. i))
+            tinsert(parts, dest[i][2] or dest[i][1] or ("Destination " .. i))
         end
         pin.markerHint = "|cFFFFD700Click for destinations:|r " .. tconcat(parts, ", ")
-    elseif pin.isDualDest then
-        pin.markerHint = "|cFFFFD700Left-click:|r " .. (dest[1][3] or "Destination 1")
-                      .. "   |cFFFFD700Right-click:|r " .. (dest[2][3] or "Destination 2")
+    elseif isDual then
+        local a = type(dest[1]) == "table" and dest[1][1] or dest[1]
+        local b = type(dest[2]) == "table" and dest[2][1] or dest[2]
+        pin.markerHint = "|cFFFFD700Left-click:|r " .. a
+                      .. "   |cFFFFD700Right-click:|r " .. b
     end
 
     pin:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -658,38 +766,48 @@ end
 
 local function UpdateMarkers()
     if not initialized then return end
+    if buildingZoneNav then return end
     if not ModernMapMarkersDB.showMarkers or not WorldMapFrame:IsVisible() then return end
 
+    -- Resolve the current zone by internal name. GetMapInfo() is authoritative
+    -- (DBC-backed) and matches the keys in pointsByMap. We fall back to
+    -- WorldMapFrameAreaLabel's text only when GetMapInfo returns nothing
+    -- (e.g. an unusual PE map state); that fallback is localized display
+    -- text and will not key into pointsByMap — which is fine, markers just
+    -- won't render on that unknown map.
     local currentContinent = GetCurrentMapContinent()
     local currentZone      = GetCurrentMapZone()
     local currentLevel     = GetCurrentMapDungeonLevel()
+    local currentName      = GetMapInfo()
+    if not currentName and WorldMapFrameAreaLabel then
+        local t = WorldMapFrameAreaLabel:GetText()
+        if t and t ~= "" then currentName = t end
+    end
 
     -- Only show markers on the top dungeon level.
     if currentLevel and currentLevel > 1 then
         if activeMarkersCount > 0 then ClearMarkers() end
-        lastContinent = INVALID_ZONE
-        lastZone      = INVALID_ZONE
+        lastZoneName = nil
         return
     end
 
-    -- Clear when inside an instance or on an invalid map.
-    if currentContinent == INVALID_ZONE or currentZone == INVALID_ZONE then
+    -- Clear when inside an instance or on an invalid/continent-level map.
+    if currentContinent == INVALID_ZONE or currentZone == INVALID_ZONE
+       or not currentName then
         if activeMarkersCount > 0 then
             ClearMarkers()
-            lastContinent = INVALID_ZONE
-            lastZone      = INVALID_ZONE
+            lastZoneName = nil
         end
         return
     end
 
-    if currentContinent == lastContinent and currentZone == lastZone then return end
+    if currentName == lastZoneName then return end
 
     local now = GetTime()
     if now - lastUpdateTime < UPDATE_THROTTLE then return end
     lastUpdateTime = now
 
-    lastContinent = currentContinent
-    lastZone      = currentZone
+    lastZoneName = currentName
 
     ClearMarkers()
 
@@ -697,8 +815,7 @@ local function UpdateMarkers()
     local mapHeight = WorldMapDetailFrame:GetHeight()
     if mapWidth == 0 or mapHeight == 0 then return end
 
-    local key = currentContinent * CONTINENT_MULTIPLIER + currentZone
-    local relevantPoints = pointsByMap[key]
+    local relevantPoints = pointsByMap[currentName]
     if not relevantPoints then return end
 
     local db               = ModernMapMarkersDB
@@ -720,11 +837,13 @@ local function UpdateMarkers()
     local texTram      = TEXTURES.tram
     local texPortal    = TEXTURES.portal
 
+    -- Entry fields (flat format):
+    --   [1]=zoneName [2]=x [3]=y [4]=name [5]=kind [6]=info [7]=atlasID [8]=slot8
     local pointCount = #relevantPoints
     for i = 1, pointCount do
         local data    = relevantPoints[i]
-        local kind    = data[6]
-        local info    = data[7]
+        local kind    = data[5]
+        local info    = data[6]
         local shouldDisplay = false
         local texture
 
@@ -767,9 +886,9 @@ local function UpdateMarkers()
             local size = (kind == "boat" or kind == "zepp" or kind == "tram" or kind == "portal")
                 and MARKER_SIZE_SMALL or MARKER_SIZE_LARGE
             local pin = CreateMapPin(
-                data[3] * mapWidth, data[4] * mapHeight,
+                data[2] * mapWidth, data[3] * mapHeight,
                 size, texture,
-                data[5], info, data[8], kind, data[9])
+                data[4], info, data[7], kind, data[8])
             activeMarkersCount = activeMarkersCount + 1
             activeMarkers[activeMarkersCount] = pin
         end
@@ -789,33 +908,14 @@ local function UpdateMarkers()
     end
 
     -- Highlight the return transport after a transport click.
-    if pendingOriginC then
-        local oc = pendingOriginC
-        local oz = pendingOriginZ
-        pendingOriginC = nil
-        pendingOriginZ = nil
+    if pendingOriginName then
+        local originName = pendingOriginName
+        pendingOriginName = nil
         for i = 1, activeMarkersCount do
             local pin = activeMarkers[i]
-            if pin and pin.transportDest then
-                local d = pin.transportDest
-                local match
-                if pin.isMultiDest then
-                    for i = 1, #d do
-                        if d[i][1] == oc and d[i][2] == oz then
-                            match = true
-                            break
-                        end
-                    end
-                elseif pin.isDualDest then
-                    match = (d[1][1] == oc and d[1][2] == oz)
-                         or (d[2][1] == oc and d[2][2] == oz)
-                else
-                    match = (d[1] == oc and d[2] == oz)
-                end
-                if match then
-                    StartPinHighlight(pin)
-                    break
-                end
+            if pin and pin.transportDest and PinMatchesZone(pin, originName) then
+                StartPinHighlight(pin)
+                break
             end
         end
     end
@@ -893,6 +993,10 @@ local function ScheduleAtlasPriming()
             this:SetScript("OnUpdate", nil)
             PrimeAtlasSilently()
             HookAtlasToggle()
+            -- Build the zone-name nav map here. PE has finished loading
+            -- WorldMapArea.dbc by this point, and the world map isn't
+            -- visible, so SetMapZoom side-effects are harmless.
+            BuildZoneNav()
         end
     end)
 end
@@ -932,8 +1036,7 @@ frame:SetScript("OnEvent", function()
                 updateEnabled = true
             end
         end
-        lastContinent = 0
-        lastZone      = 0
+        lastZoneName = nil
         ScheduleAtlasPriming()
 
     elseif event == "WORLD_MAP_UPDATE" then

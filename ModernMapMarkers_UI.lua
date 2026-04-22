@@ -178,15 +178,16 @@ function MMM.ShowDestMenu(pin)
             btn:SetHighlightFontObject("GameFontHighlightSmall")
             btn:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
             btn:SetScript("OnClick", function()
-                local d  = this.destTable[this.destIndex]
-                local cc = GetCurrentMapContinent()
-                local cz = GetCurrentMapZone()
+                -- Multi-dest entries are {"ZoneName","Label"} tables.
+                local d           = this.destTable[this.destIndex]
+                local destName    = d[1]
+                local currentName = GetMapInfo()
                 HideDestMenu()
-                if d[1] == cc and d[2] == cz then
+                if destName == currentName then
                     MMM.pendingHighlight = this.ownerName
                     MMM.UpdateMarkers()
                 else
-                    MMM.NavigateToTransportDest(d[1], d[2], cc, cz)
+                    MMM.NavigateToTransportDest(destName, currentName)
                 end
             end)
             destMenu.buttons[i] = btn
@@ -195,7 +196,7 @@ function MMM.ShowDestMenu(pin)
         btn.destIndex = i
         btn.destTable = dest
         btn.ownerName = pin.markerName
-        btn:SetText(dest[i][3] or ("Destination " .. i))
+        btn:SetText(dest[i][2] or dest[i][1] or ("Destination " .. i))
         btn:SetWidth(MENU_BUTTON_WIDTH)
         btn:ClearAllPoints()
         btn:SetPoint("TOPLEFT", destMenu, "TOPLEFT", MENU_PADDING, -(MENU_PADDING + (i-1)*MENU_BUTTON_HEIGHT))
@@ -383,9 +384,8 @@ local function DrawFindRows()
                 local rw = row.rowWidth or row:GetWidth()
                 row.rowWidth = rw
                 row.nameText:SetWidth(rw - row.lvlText:GetStringWidth() - 16)
-                row.dataContinent = slot.continent
-                row.dataZone      = slot.zone
-                row.dataName      = slot.dataName
+                row.dataZoneName = slot.zoneName
+                row.dataName     = slot.dataName
                 if slot.hasComment and i < MAX_VISIBLE_ROWS then
                     row.hlTex:ClearAllPoints()
                     row.hlTex:SetPoint("TOPLEFT",     row, "TOPLEFT",     0,  0)
@@ -402,19 +402,17 @@ local function DrawFindRows()
                 row.rowWidth = rw
                 row.nameText:SetWidth(rw - 8)
                 row.lvlText:SetText("")
-                row.dataContinent = parent.continent
-                row.dataZone      = parent.zone
-                row.dataName      = parent.dataName
-                row.nameRow       = findRowButtons[i - 1]
+                row.dataZoneName = parent.zoneName
+                row.dataName     = parent.dataName
+                row.nameRow      = findRowButtons[i - 1]
             end
             row:Show()
         else
             row.nameText:SetText("")
             row.lvlText:SetText("")
             row.nameText:SetTextColor(1, 1, 1)
-            row.dataContinent = nil
-            row.dataZone      = nil
-            row.dataName      = nil
+            row.dataZoneName = nil
+            row.dataName     = nil
             row.hlTex:SetAllPoints(row)
             row.nameRow = nil
             row:Hide()
@@ -458,7 +456,7 @@ local function RebuildFindList()
 
         tinsert(findDisplayList, {
             kind="name", text=baseName, lvlText=lvlStr,
-            continent=data.continent, zone=data.zone,
+            zoneName=data.zoneName,
             dataName=data.name, hasComment=(comment ~= nil),
         })
 
@@ -623,8 +621,8 @@ local function CreateFindPanel(anchorFrame)
         row.lvlText = lvlText
 
         row:SetScript("OnClick", function()
-            if this.dataContinent then
-                MMM.FindMarker(this.dataContinent, this.dataZone, this.dataName)
+            if this.dataZoneName then
+                MMM.FindMarker(this.dataZoneName, this.dataName)
             end
         end)
         row:SetScript("OnEnter", function()
@@ -651,15 +649,15 @@ end
 -- Find Marker navigation
 -- ============================================================
 
-function MMM.FindMarker(continentID, zoneID, markerName)
+function MMM.FindMarker(zoneName, markerName)
     if not WorldMapFrame:IsVisible() then ShowUIPanel(WorldMapFrame) end
     PlaySoundFile("Sound\\Interface\\MapPing.wav")
     MMM.pendingHighlight = markerName
-    if GetCurrentMapContinent() == continentID and GetCurrentMapZone() == zoneID then
+    if GetMapInfo() == zoneName then
         MMM.ForceRedraw()
         MMM.UpdateMarkers()
     else
-        SetMapZoom(continentID, zoneID)
+        MMM.NavigateByName(zoneName)
     end
 end
 
@@ -837,6 +835,38 @@ SlashCmdList["MMM"] = function(msg)
     if msg and slower(msg) == "hints" then
         ModernMapMarkersDB.showTransportHints = not ModernMapMarkersDB.showTransportHints
         MMM.RefreshVisibleTooltip()
+        return
+    end
+    if msg and slower(msg) == "debug" then
+        -- Temporary diagnostic: dump current zone identity and the
+        -- zone-name nav map. Removed before final release (Task 13).
+        local cc   = GetCurrentMapContinent()
+        local cz   = GetCurrentMapZone()
+        local name = GetMapInfo() or "(nil)"
+        local areaLabel = WorldMapFrameAreaLabel and WorldMapFrameAreaLabel:GetText() or "(nil)"
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD700MMM debug|r")
+        DEFAULT_CHAT_FRAME:AddMessage("  GetCurrentMapContinent="..tostring(cc)
+                                    .."  GetCurrentMapZone="..tostring(cz))
+        DEFAULT_CHAT_FRAME:AddMessage("  GetMapInfo="..tostring(name))
+        DEFAULT_CHAT_FRAME:AddMessage("  AreaLabel="..tostring(areaLabel))
+        if MMM.BuildZoneNav then MMM.BuildZoneNav() end
+        -- Enumerate C1/C2 zones via GetMapZones so the user can verify
+        -- ordering and internal-name mapping.
+        for c = 1, 2 do
+            local zones = { GetMapZones(c) }
+            DEFAULT_CHAT_FRAME:AddMessage(
+                "|cFF88CCFF  Continent "..c..": "..#zones.." zones|r")
+            for z = 1, #zones do
+                SetMapZoom(c, z)
+                local internal = GetMapInfo() or "(?)"
+                DEFAULT_CHAT_FRAME:AddMessage(
+                    "    ["..c..","..z.."] "..zones[z].." -> "..internal)
+            end
+        end
+        -- Restore a safe map view.
+        if cc and cc > 0 then
+            if cz and cz > 0 then SetMapZoom(cc, cz) else SetMapZoom(cc) end
+        end
         return
     end
     if msg and msg ~= "" then return end
