@@ -97,12 +97,11 @@ MMM_DefaultPoints = {
     -- Transport
     -- PE places the Horde zeppelin towers inside Orgrimmar (Valley of
     -- Winds), not on the WotLK platform NW of the city in Durotar.
-    {"Ogrimmar", 0.90, 0.52, "Zeppelins to Tirisfal Glades & Grom'Gol", "zepp", "Horde", nil, {"Tirisfal", "Stranglethorn"}},
-    {"Ogrimmar", 0.83, 0.58, "Zeppelins to Thunder Bluff & Warsong Hold", "zepp", "Horde", nil, "ThunderBluff"},
-    {"ThunderBluff", 0.137, 0.257, "Zeppelin to Durotar", "zepp", "Horde", nil, "Durotar"},
+    {"Ogrimmar", 0.90, 0.527, "Zeppelin to Tirisfal Glades", "zepp", "Horde", nil, "Tirisfal"},
+    {"Ogrimmar", 0.83, 0.58, "Zeppelin to Grom'Gol", "zepp", "Horde", nil, "Stranglethorn"},
     {"Barrens", 0.636, 0.389, "Boat to Booty Bay", "boat", "Neutral", nil, "Stranglethorn"},
     {"Darkshore", 0.333, 0.399, "Boat to Rut'Theran Village", "boat", "Alliance", nil, "Teldrassil"},
-    {"Darkshore", 0.325, 0.436, "Boat to Stormwind Harbor", "boat", "Alliance", nil, "Stormwind"},
+    {"Darkshore", 0.325, 0.436, "Boat to Menethil Harbor", "boat", "Alliance", nil, "Wetlands"},
     {"Dustwallow", 0.718, 0.566, "Boat to Menethil Harbor", "boat", "Alliance", nil, "Wetlands"},
     {"Feralas", 0.311, 0.395, "Boat to Forgotten Coast", "boat", "Alliance", nil, "Feralas"},
     {"Feralas", 0.431, 0.428, "Boat to Sardor Isle", "boat", "Alliance", nil, "Feralas"},
@@ -155,10 +154,11 @@ MMM_DefaultPoints = {
     {"Stormwind", 0.677, 0.325, "Tram to Ironforge", "tram", "Alliance", nil, "Ironforge"},
     {"Ironforge", 0.762, 0.511, "Tram to Stormwind", "tram", "Alliance", nil, "Stormwind"},
     {"Wetlands", 0.051, 0.634, "Boat to Theramore Isle", "boat", "Alliance", nil, "Dustwallow"},
+	{"Wetlands", 0.047, 0.570, "Boat to Auberdine", "boat", "Alliance", nil, "Darkshore"},
     {"Stranglethorn", 0.257, 0.73, "Boat to Ratchet", "boat", "Neutral", nil, "Barrens"},
-    {"Tirisfal", 0.606, 0.583, "Zeppelins to Durotar, Grom'Gol & Vengeance Landing", "zepp", "Horde", nil, {{"Durotar", "Durotar"}, {"Stranglethorn", "Grom'Gol"}}},
-    {"Stranglethorn", 0.312, 0.298, "Zeppelins to Tirisfal Glades & Durotar", "zepp", "Horde", nil, {"Tirisfal", "Durotar"}},
-    {"Stormwind", 0.216, 0.562, "Boat to Auberdine", "boat", "Alliance", nil, "Darkshore"},
+    {"Tirisfal", 0.606, 0.583, "Zeppelins to Orgrimmar & Grom'Gol", "zepp", "Horde", nil, {"Ogrimmar", "Stranglethorn"}},
+    {"Stranglethorn", 0.312, 0.298, "Zeppelins to Tirisfal Glades & Orgrimmar", "zepp", "Horde", nil, {"Tirisfal", "Ogrimmar"}},
+    {"Stormwind", 0.216, 0.562, "Vendor Boat", "boat", "Alliance", nil, "Stormwind"},
     -- Portals
     {"Undercity", 0.852, 0.17, "Portal to Blasted Lands", "portal", "Horde", nil, "BlastedLands"},
     {"Stormwind", 0.490, 0.873, "Portal to Blasted Lands", "portal", "Alliance", nil, "BlastedLands"},
