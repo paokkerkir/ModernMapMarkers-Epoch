@@ -115,6 +115,7 @@ MMM_DefaultPoints = {
     -- Eastern Kingdoms
     -- -------------------------------------------------------------------------
     -- Dungeons
+    {"Arathi", 0.322, 0.824, "Baradin Hold (Flight Path)", "dungeon", "57-60", "BaradinHold", "dropdown"},
     {"SearingGorge", 0.387, 0.833, "Blackrock Depths\n|cFF808080(Searing Gorge)|r", "dungeon", "52-60", "BlackrockDepths", "dropdown"},
     {"BurningSteppes", 0.328, 0.365, "Blackrock Depths\n|cFF808080(Burning Steppes)|r", "dungeon", "52-60", "BlackrockDepths", "dropdown"},
     {"Westfall", 0.423, 0.726, "The Deadmines", "dungeon", "17-24", "TheDeadmines"},
@@ -136,7 +137,7 @@ MMM_DefaultPoints = {
     {"Badlands", 0.657, 0.438, "Uldaman\n|cFF808080(Back Entrance)|r", "dungeon", "41-51", "Uldaman"},
     {"BurningSteppes", 0.312, 0.365, "Upper Blackrock Spire\n|cFF808080(Burning Steppes)|r", "dungeon", "55-60", "BlackrockSpireUpper", "dropdown"},
     {"SearingGorge", 0.371, 0.833, "Upper Blackrock Spire\n|cFF808080(Searing Gorge)|r", "dungeon", "55-60", "BlackrockSpireUpper", "dropdown"},
-    {"Stranglethorn", 0.588, 0.340, "Glittermurk Mines", "dungeon", "34-40", "GlittermurkMines"},
+    {"Stranglethorn", 0.420, 0.460, "Glittermurk Mines", "dungeon", "34-40", "GlittermurkMines"},
     -- Raids
     -- Blackwing Lair, Zul'Gurub, and Karazhan are not in PE Atlas; they
     -- still pin on the map but do not open an Atlas page on click.
