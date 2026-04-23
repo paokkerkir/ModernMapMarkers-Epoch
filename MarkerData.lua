@@ -70,30 +70,30 @@ MMM_DefaultPoints = {
     -- Stratholme are NOT in PE Atlas (no AtlasMaps entry) so atlasID=nil;
     -- they still show as pins but clicking them won't open Atlas.
     {"Ashenvale", 0.123, 0.128, "Blackfathom Deeps", "dungeon", "24-32", "BlackfathomDeeps"},
-    {"Feralas", 0.648, 0.303, "Dire Maul - East", "dungeon", "55-58", nil},
-    {"Feralas", 0.771, 0.369, "Dire Maul - East\n|cFF808080(The Hidden Reach)|r", "dungeon", "55-58", nil},
-    {"Feralas", 0.671, 0.34, "Dire Maul - East\n|cFF808080(Side Entrance)|r", "dungeon", "55-58", nil},
-    {"Feralas", 0.624, 0.249, "Dire Maul - North", "dungeon", "57-60", nil},
-    {"Feralas", 0.604, 0.311, "Dire Maul - West", "dungeon", "57-60", nil},
+--    {"Feralas", 0.648, 0.303, "Dire Maul - East", "dungeon", "55-58", nil},
+ --   {"Feralas", 0.771, 0.369, "Dire Maul - East\n|cFF808080(The Hidden Reach)|r", "dungeon", "55-58", nil},
+ --   {"Feralas", 0.671, 0.34, "Dire Maul - East\n|cFF808080(Side Entrance)|r", "dungeon", "55-58", nil},
+ --   {"Feralas", 0.624, 0.249, "Dire Maul - North", "dungeon", "57-60", nil},
+--    {"Feralas", 0.604, 0.311, "Dire Maul - West", "dungeon", "57-60", nil},
     {"Desolace", 0.29, 0.629, "Maraudon", "dungeon", "46-55", "Maraudon"},
     {"Ogrimmar", 0.53, 0.486, "Ragefire Chasm", "dungeon", "13-18", "RagefireChasm"},
     {"Barrens", 0.508, 0.94, "Razorfen Downs", "dungeon", "37-46", "RazorfenDowns"},
     {"Barrens", 0.423, 0.9, "Razorfen Kraul", "dungeon", "29-38", "RazorfenKraul"},
     {"Barrens", 0.462, 0.357, "Wailing Caverns", "dungeon", "17-24", "WailingCaverns"},
     {"Tanaris", 0.389, 0.184, "Zul'Farrak", "dungeon", "44-54", "ZulFarrak"},
-    {"Tanaris", 0.650, 0.458, "Old Hillsbrad Foothills", "dungeon", "66-70", nil},
-    {"Tanaris", 0.685, 0.48, "The Black Morass", "dungeon", "68-70", nil},
-    {"Tanaris", 0.678, 0.512, "The Culling of Stratholme", "dungeon", "75-80", nil},
+  --  {"Tanaris", 0.650, 0.458, "Old Hillsbrad Foothills", "dungeon", "66-70", nil},
+ --   {"Tanaris", 0.685, 0.48, "The Black Morass", "dungeon", "68-70", nil},
+ --   {"Tanaris", 0.678, 0.512, "The Culling of Stratholme", "dungeon", "75-80", nil},
     -- Raids
     -- Onyxia's Lair, AQ20/AQ40, and Hyjal Summit are not in PE Atlas.
     {"Dustwallow", 0.529, 0.777, "Onyxia's Lair", "raid", "60", nil},
-    {"Silithus", 0.305, 0.987, "Ruins of Ahn'Qiraj", "raid", "60", nil},
-    {"Silithus", 0.269, 0.987, "Temple of Ahn'Qiraj", "raid", "60", nil},
-    {"Tanaris", 0.67, 0.45, "Hyjal Summit", "raid", "70", nil},
+--    {"Silithus", 0.305, 0.987, "Ruins of Ahn'Qiraj", "raid", "60", nil},
+--    {"Silithus", 0.269, 0.987, "Temple of Ahn'Qiraj", "raid", "60", nil},
+ --   {"Tanaris", 0.67, 0.45, "Hyjal Summit", "raid", "70", nil},
     -- World Bosses
     {"Aszhara", 0.535, 0.816, "Azuregos", "worldboss", "60", nil},
-    {"Ashenvale", 0.937, 0.355, "Emerald Dragon\n|cFF808080(Bough Shadow)|r", "worldboss", "60", nil},
-    {"Feralas", 0.512, 0.108, "Emerald Dragon\n|cFF808080(Dream Bough)|r", "worldboss", "60", nil},
+--    {"Ashenvale", 0.937, 0.355, "Emerald Dragon\n|cFF808080(Bough Shadow)|r", "worldboss", "60", nil},
+  --  {"Feralas", 0.512, 0.108, "Emerald Dragon\n|cFF808080(Dream Bough)|r", "worldboss", "60", nil},
     -- Transport
     -- PE places the Horde zeppelin towers inside Orgrimmar (Valley of
     -- Winds), not on the WotLK platform NW of the city in Durotar.
@@ -136,19 +136,20 @@ MMM_DefaultPoints = {
     {"Badlands", 0.657, 0.438, "Uldaman\n|cFF808080(Back Entrance)|r", "dungeon", "41-51", "Uldaman"},
     {"BurningSteppes", 0.312, 0.365, "Upper Blackrock Spire\n|cFF808080(Burning Steppes)|r", "dungeon", "55-60", "BlackrockSpireUpper", "dropdown"},
     {"SearingGorge", 0.371, 0.833, "Upper Blackrock Spire\n|cFF808080(Searing Gorge)|r", "dungeon", "55-60", "BlackrockSpireUpper", "dropdown"},
+    {"Stranglethorn", 0.588, 0.340, "Glittermurk Minrs", "dungeon", "34-40", "Glittermurk Mines"},
     -- Raids
     -- Blackwing Lair, Zul'Gurub, and Karazhan are not in PE Atlas; they
     -- still pin on the map but do not open an Atlas page on click.
-    {"SearingGorge", 0.332, 0.833, "Blackwing Lair\n|cFF808080(Searing Gorge)|r", "raid", "60", nil, "dropdown"},
-    {"BurningSteppes", 0.273, 0.363, "Blackwing Lair\n|cFF808080(Burning Steppes)|r", "raid", "60", nil, "dropdown"},
+--    {"SearingGorge", 0.332, 0.833, "Blackwing Lair\n|cFF808080(Searing Gorge)|r", "raid", "60", nil, "dropdown"},
+--    {"BurningSteppes", 0.273, 0.363, "Blackwing Lair\n|cFF808080(Burning Steppes)|r", "raid", "60", nil, "dropdown"},
     {"SearingGorge", 0.332, 0.86, "Molten Core\n|cFF808080(Searing Gorge)|r", "raid", "60", "MoltenCore", "dropdown"},
     {"BurningSteppes", 0.273, 0.39, "Molten Core\n|cFF808080(Burning Steppes)|r", "raid", "60", "MoltenCore", "dropdown"},
-    {"Stranglethorn", 0.53, 0.172, "Zul'Gurub", "raid", "60", nil},
-    {"DeadwindPass", 0.469, 0.747, "Karazhan", "raid", "70", nil},
-    {"DeadwindPass", 0.467, 0.708, "Karazhan\n|cFF808080(Side Entrance)|r", "raid", "70", nil},
+--    {"Stranglethorn", 0.53, 0.172, "Zul'Gurub", "raid", "60", nil},
+--    {"DeadwindPass", 0.469, 0.747, "Karazhan", "raid", "70", nil},
+--    {"DeadwindPass", 0.467, 0.708, "Karazhan\n|cFF808080(Side Entrance)|r", "raid", "70", nil},
     -- World Bosses
-    {"Duskwood", 0.465, 0.357, "Emerald Dragon\n|cFF808080(The Twilight Grove)|r", "worldboss", "60", nil},
-    {"Hinterlands", 0.632, 0.217, "Emerald Dragon\n|cFF808080(Seradane)|r", "worldboss", "60", nil},
+--    {"Duskwood", 0.465, 0.357, "Emerald Dragon\n|cFF808080(The Twilight Grove)|r", "worldboss", "60", nil},
+--    {"Hinterlands", 0.632, 0.217, "Emerald Dragon\n|cFF808080(Seradane)|r", "worldboss", "60", nil},
     -- Transport
     {"Stormwind", 0.677, 0.325, "Tram to Ironforge", "tram", "Alliance", nil, "Ironforge"},
     {"Ironforge", 0.762, 0.511, "Tram to Stormwind", "tram", "Alliance", nil, "Stormwind"},
