@@ -115,7 +115,7 @@ MMM_DefaultPoints = {
     -- Eastern Kingdoms
     -- -------------------------------------------------------------------------
     -- Dungeons
-    {"ArathiHighlands", 0.322, 0.824, "Baradin Hold (Flight Path)", "dungeon", "57-60", "BaradinHold", "dropdown"},
+    {"Arathi", 0.322, 0.824, "Baradin Hold (Flight Path)", "dungeon", "57-60", "BaradinHold", "dropdown"},
     {"SearingGorge", 0.387, 0.833, "Blackrock Depths\n|cFF808080(Searing Gorge)|r", "dungeon", "52-60", "BlackrockDepths", "dropdown"},
     {"BurningSteppes", 0.328, 0.365, "Blackrock Depths\n|cFF808080(Burning Steppes)|r", "dungeon", "52-60", "BlackrockDepths", "dropdown"},
     {"Westfall", 0.423, 0.726, "The Deadmines", "dungeon", "17-24", "TheDeadmines"},
