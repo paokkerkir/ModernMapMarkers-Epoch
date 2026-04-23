@@ -136,7 +136,7 @@ MMM_DefaultPoints = {
     {"Badlands", 0.657, 0.438, "Uldaman\n|cFF808080(Back Entrance)|r", "dungeon", "41-51", "Uldaman"},
     {"BurningSteppes", 0.312, 0.365, "Upper Blackrock Spire\n|cFF808080(Burning Steppes)|r", "dungeon", "55-60", "BlackrockSpireUpper", "dropdown"},
     {"SearingGorge", 0.371, 0.833, "Upper Blackrock Spire\n|cFF808080(Searing Gorge)|r", "dungeon", "55-60", "BlackrockSpireUpper", "dropdown"},
-    {"Stranglethorn", 0.588, 0.340, "Glittermurk Minrs", "dungeon", "34-40", "Glittermurk Mines"},
+    {"Stranglethorn", 0.588, 0.340, "Glittermurk Mines", "dungeon", "34-40", "GlittermurkMines"},
     -- Raids
     -- Blackwing Lair, Zul'Gurub, and Karazhan are not in PE Atlas; they
     -- still pin on the map but do not open an Atlas page on click.
