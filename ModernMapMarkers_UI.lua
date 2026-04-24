@@ -712,99 +712,18 @@ end
 
 local function PositionDropdowns()
     if not MMMFilterDropdown then return end
-    local isMinimode = (WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE)
-    local hasMapster        = IsAddOnLoaded("Mapster")
-    local hasQuestie        = IsAddOnLoaded("Questie-335")
-    local hasWDM            = IsAddOnLoaded("WDM")
-    local hasElvUI          = elvuiS ~= nil
-    local hasElvUISmallerMap = hasElvUI
-                               and elvuiE.global
-                               and elvuiE.global.general
-                               and elvuiE.global.general.smallerWorldMap
-    MMMFilterDropdown:ClearAllPoints()
-     -- NEW: minimode/windowed positioning
-    if isMinimode then
-        MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 18, -8)
-        end
-    elseif hasElvUISmallerMap then
-        if (hasMapster and hasQuestie) or hasWDM then
-            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 18, -79)
-        elseif hasMapster then
-            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 18, -50)
-        elseif hasQuestie or hasWDM then
-            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 18, -79)
-        else
-            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 18, -50)
-        end
-    elseif hasElvUI then
-        if (hasMapster and hasQuestie) or hasWDM then
-            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", -18, -111)
-        elseif hasMapster then
-            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", -18, -79)
-        elseif hasQuestie or hasWDM then
-            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrame, "TOPRIGHT", -188, -111)
-        else
-            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrame, "TOPRIGHT", -188, -79)
-        end
-    else
-        if (hasMapster and hasQuestie) or hasWDM then
-            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", 2, -111)
-        elseif hasMapster then
-            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", 2, -79)
-        elseif hasQuestie or hasWDM then
-            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrame, "TOPRIGHT", -168, -111)
-        else
-            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrame, "TOPRIGHT", -168, -79)
-        end
-    end
-    MMMFindDropdown:ClearAllPoints()
-    MMMFindDropdown:SetPoint("TOPRIGHT", MMMFilterDropdown, "BOTTOMRIGHT", 0, 0)
-end
 
--- Called once after ElvUI:Initialize() completes.
-local function ElvUI_OnReady()
-    if not ElvUI then return end
-    elvuiE = ElvUI[1]
-    if not elvuiE then return end
-    elvuiS = elvuiE:GetModule("Skins")
-    if not elvuiS then return end
-    ElvUI_SkinDropdowns()
-    PositionDropdowns()
-    -- Panel skin deferred until panel is created (ElvUI_SkinPanel called from OnClick).
-end
-
-local function ElvUI_Hook()
-    if not ElvUI then return end
-    local E = ElvUI[1]
-    if not E then return end
-    if E.initialized then
-        ElvUI_OnReady()
-    else
-        hooksecurefunc(E, "Initialize", ElvUI_OnReady)
-    end
-end
-
--- ============================================================
--- Dropdowns
--- ============================================================
- 
-local function PositionDropdowns()
-    if not MMMFilterDropdown then return end
- 
     -- Magnify minimode: WorldMap_ToggleSizeDown sets WORLDMAP_SETTINGS.size to
     -- WORLDMAP_WINDOWED_SIZE. In that state WorldMapPositioningGuide is not a
     -- reliable anchor, so pin the dropdowns just below the close button instead.
     local isMinimode = WORLDMAP_SETTINGS
                        and WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE
- 
+
     local hasMapster        = IsAddOnLoaded("Mapster")
     local hasQuestie        = IsAddOnLoaded("Questie-335")
     local hasWDM            = IsAddOnLoaded("WDM")
     local hasElvUI          = elvuiS ~= nil
-    local hasElvUISmallerMap = hasElvUI
-                               and elvuiE.global
-                               and elvuiE.global.general
-                               and elvuiE.global.general.smallerWorldMap
+    local hasElvUISmallerMap = hasElvUI and elvuiE.global and elvuiE.global.general and elvuiE.global.general.smallerWorldMap
     MMMFilterDropdown:ClearAllPoints()
     if isMinimode then
         -- Anchor to the close button which exists and is correctly placed in
@@ -844,13 +763,13 @@ local function PositionDropdowns()
     MMMFindDropdown:ClearAllPoints()
     MMMFindDropdown:SetPoint("TOPRIGHT", MMMFilterDropdown, "BOTTOMRIGHT", 0, 0)
 end
- 
+
 -- Public wrapper so Magnify (and any other addon) can re-position the
 -- dropdowns after switching map modes without accessing the local upvalue.
 function MMM.PositionDropdowns()
     PositionDropdowns()
 end
- 
+
 -- Called once after ElvUI:Initialize() completes.
 local function ElvUI_OnReady()
     if not ElvUI then return end
@@ -862,7 +781,7 @@ local function ElvUI_OnReady()
     PositionDropdowns()
     -- Panel skin deferred until panel is created (ElvUI_SkinPanel called from OnClick).
 end
- 
+
 local function ElvUI_Hook()
     if not ElvUI then return end
     local E = ElvUI[1]
@@ -873,25 +792,25 @@ local function ElvUI_Hook()
         hooksecurefunc(E, "Initialize", ElvUI_OnReady)
     end
 end
- 
+
 local function CreateDropdowns()
     local parent = WorldMapFrame
     local filterDropdown = CreateFrame("Frame", "MMMFilterDropdown", parent, "UIDropDownMenuTemplate")
     local findDropdown   = CreateFrame("Frame", "MMMFindDropdown",   parent, "UIDropDownMenuTemplate")
     local baseLevel = parent:GetFrameLevel() + 10
- 
+
     filterDropdown:SetFrameStrata(parent:GetFrameStrata())
     filterDropdown:SetFrameLevel(baseLevel)
     findDropdown:SetFrameStrata(parent:GetFrameStrata())
     findDropdown:SetFrameLevel(baseLevel)
- 
+
     local filterBtn = getglobal("MMMFilterDropdownButton")
     if filterBtn then filterBtn:SetFrameLevel(baseLevel + 2) end
     local findBtn = getglobal("MMMFindDropdownButton")
     if findBtn then findBtn:SetFrameLevel(baseLevel + 2) end
- 
+
     PositionDropdowns()
- 
+
     UIDropDownMenu_SetWidth(filterDropdown, 120)
     UIDropDownMenu_SetButtonWidth(filterDropdown, 125)
     UIDropDownMenu_SetWidth(findDropdown, 120)
@@ -899,7 +818,7 @@ local function CreateDropdowns()
     UIDropDownMenu_SetText(filterDropdown, "Filter Markers")
     UIDropDownMenu_SetText(findDropdown,   "Find Marker")
     UIDropDownMenu_Initialize(findDropdown, function() end)
- 
+
     if findBtn then
         findBtn:SetScript("OnClick", function()
             PlaySound("igMainMenuOptionCheckBoxOn")
@@ -920,7 +839,6 @@ local function CreateDropdowns()
         end)
     end
 end
- 
 
 -- ============================================================
 -- Slash command
