@@ -27,6 +27,7 @@ local TEXTURES = {
     boat      = "Interface\\Addons\\ModernMapMarkers\\Textures\\boat.tga",
     tram      = "Interface\\Addons\\ModernMapMarkers\\Textures\\tram.tga",
     portal    = "Interface\\Addons\\ModernMapMarkers\\Textures\\portal.tga",
+    pvp       = "Interface\\Addons\\ModernMapMarkers\\Textures\\pvp.tga",
 }
 
 local WORLD_BOSS_MAP = {
