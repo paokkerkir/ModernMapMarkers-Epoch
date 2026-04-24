@@ -964,5 +964,20 @@ uiFrame:SetScript("OnEvent", function()
                 PositionDropdowns()
             end
         end)
+
+        -- Hook the size-toggle globals so minimode repositioning works
+        -- even when Magnify is not installed. Magnify also calls
+        -- MMM.PositionDropdowns() from its own SetupWorldMapFrame hook,
+        -- so both paths are covered regardless of addon load order.
+        local _origToggleSizeUp   = WorldMap_ToggleSizeUp
+        local _origToggleSizeDown = WorldMap_ToggleSizeDown
+        WorldMap_ToggleSizeUp = function(...)
+            if _origToggleSizeUp then _origToggleSizeUp(...) end
+            PositionDropdowns()
+        end
+        WorldMap_ToggleSizeDown = function(...)
+            if _origToggleSizeDown then _origToggleSizeDown(...) end
+            PositionDropdowns()
+        end
     end
-end)
+end)
