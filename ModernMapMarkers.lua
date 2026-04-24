@@ -440,46 +440,48 @@ local function IsWorldMapFullscreen()
 end
 
 local function OnWorldBossClick()
-    -- 1. Force load the WorldEvents module (where Volchan, etc. live)
+    -- 1. Load the module
     if not IsAddOnLoaded("AtlasLoot_WorldEvents") then
         LoadAddOn("AtlasLoot_WorldEvents")
     end
 
-    -- 2. API Check: We only need the show function
-    if not AtlasLoot_ShowBossLoot then
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000MMM Error:|r AtlasLoot_ShowBossLoot function not found.")
-        return
+    -- 2. Force the World Map to close
+    if WorldMapFrame:IsVisible() then
+        WorldMapFrame:Hide()
     end
 
     local bossName = this.markerName
-    -- Use the atlasID from MarkerData.lua (e.g., "Volchan")
     local atlasID  = this.atlasID or (WORLD_BOSS_MAP and WORLD_BOSS_MAP[bossName])
 
-    if not atlasID then
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000MMM:|r No AtlasID mapping found for " .. tostring(bossName))
-        return
-    end
-
-    -- 3. Close World Map so we can see the loot window
-    if WorldMapFrame:IsVisible() and IsWorldMapFullscreen() then
-        HideUIPanel(WorldMapFrame)
-    end
-
-    -- 4. Set the Anchor Frame
-    -- Since AtlasFrame is missing, we use AtlasLootDefaultFrame (the Standalone window)
-    local pFrame = AtlasLootDefaultFrame or UIParent
-
-    -- 5. Show the Loot
-    local ok, err = pcall(AtlasLoot_ShowBossLoot, atlasID, bossName, pFrame)
-    
-    if ok then
-        PlaySoundFile(SOUND_CLICK)
-        -- If it's the standalone browser, ensure it's actually visible
-        if AtlasLootDefaultFrame then 
-            AtlasLootDefaultFrame:Show() 
+    if atlasID and AtlasLoot_ShowBossLoot then
+        -- 3. Show the Standalone Frame first
+        if AtlasLootDefaultFrame then
+            AtlasLootDefaultFrame:Show()
         end
-    else
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000MMM Hook Error:|r " .. tostring(err))
+
+        -- 4. Define the internal Epoch Standalone Anchor table
+        -- This table tells AtlasLoot to snap the loot list into the 
+        -- background area of the standalone browser window.
+        local epochStandaloneAnchor = { 
+            "TOPLEFT", 
+            "AtlasLootDefaultFrame_LootBackground", 
+            "TOPLEFT", 
+            2, 
+            -2 
+        }
+
+        -- 5. Clear highlights and call the API with the anchor table
+        if AtlasLootItemsFrame then
+            AtlasLootItemsFrame.refresh = { nil, nil, nil, nil }
+        end
+
+        local ok, err = pcall(AtlasLoot_ShowBossLoot, atlasID, bossName, epochStandaloneAnchor)
+        
+        if ok then
+            PlaySoundFile(SOUND_CLICK)
+        else
+            DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000MMM Hook Error:|r " .. tostring(err))
+        end
     end
 end
 
@@ -516,39 +518,44 @@ local function ResolveAtlasID(atlasID, continent)
 end
 
 local function OnAtlasClick()
-    if not (this.atlasID and AtlasFrame and AtlasOptions) then return end
-    PlaySoundFile(SOUND_CLICK)
-    local atlasID = this.atlasID
-    local continent = GetCurrentMapContinent()
-    if WorldMapFrame:IsVisible() and IsWorldMapFullscreen() then
-        HideUIPanel(WorldMapFrame)
+    -- 1. FORCE LOAD DATA FIRST
+    if not IsAddOnLoaded("AtlasLoot_OriginalWoW") then
+        LoadAddOn("AtlasLoot_OriginalWoW")
     end
-    WithContinentSort(function()
-        -- Resolve inside the closure: WithContinentSort repopulates
-        -- ATLAS_DROPDOWNS before calling us, so the search hits the
-        -- SortBy=1 layout regardless of the user's saved sort mode.
-        local atlasType, atlasZone = ResolveAtlasID(atlasID, continent)
-        if not atlasType then
-            DEFAULT_CHAT_FRAME:AddMessage(
-                "|cFFFF0000MMM: Atlas map \""
-                .. tostring(atlasID)
-                .. "\" not available in this Atlas build.|r")
-            return
+
+    if not this.atlasID then return end
+    local atlasID = this.atlasID
+    local bossName = this.markerName or ""
+
+    -- Close World Map
+    if WorldMapFrame:IsVisible() then WorldMapFrame:Hide() end
+
+    -- CASE A: User has the core Atlas map addon installed
+    if AtlasFrame and AtlasOptions and Atlas_Refresh then
+        PlaySoundFile(SOUND_CLICK)
+        WithContinentSort(function()
+            local atlasType, atlasZone = ResolveAtlasID(atlasID, GetCurrentMapContinent())
+            if atlasType then
+                AtlasOptions.AtlasType = atlasType
+                AtlasOptions.AtlasZone = atlasZone
+                Atlas_Refresh()
+                AtlasFrame:Show()
+            end
+        end)
+
+    -- CASE B: Standalone User (Project Epoch AtlasLoot only)
+    elseif AtlasLoot_ShowBossLoot then
+        PlaySoundFile(SOUND_CLICK)
+        if AtlasLootDefaultFrame then AtlasLootDefaultFrame:Show() end
+
+        local epochStandaloneAnchor = { "TOPLEFT", "AtlasLootDefaultFrame_LootBackground", "TOPLEFT", 2, -2 }
+
+        if AtlasLootItemsFrame then
+            AtlasLootItemsFrame.refresh = { nil, nil, nil, nil }
         end
-        AtlasOptions.AtlasType = atlasType
-        AtlasOptions.AtlasZone = atlasZone
-        Atlas_Refresh()
-        AtlasFrame:SetFrameStrata("FULLSCREEN")
-        local savedAutoSelect = AtlasOptions.AtlasAutoSelect
-        AtlasOptions.AtlasAutoSelect = false
-        AtlasFrame:Show()
-        AtlasOptions.AtlasAutoSelect = savedAutoSelect
-        -- Remember this page for HookAtlasToggle (manual re-opens).
-        mmmAtlasType = atlasType
-        mmmAtlasZone = atlasZone
-        mmmZoneID = ATLAS_DROPDOWNS[atlasType] and ATLAS_DROPDOWNS[atlasType][atlasZone]
-    end)
-    if AtlasQuestFrame then AtlasQuestFrame:Show() end
+
+        pcall(AtlasLoot_ShowBossLoot, atlasID, bossName, epochStandaloneAnchor)
+    end
 end
 
 local function StartPinHighlight(pin)
@@ -755,7 +762,7 @@ local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlas
             OnWorldBossClick()
         elseif this.markerKind == "boat" or this.markerKind == "zepp"
             or this.markerKind == "tram" or this.markerKind == "portal"
-            or this.markerKind == "pvp" or this.markerKind == "flightpath" then
+            or this.markerKind == "flightpath" then
             OnTransportClick()
         elseif this.atlasID then
             OnAtlasClick()
