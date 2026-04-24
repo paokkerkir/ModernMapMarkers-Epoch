@@ -940,6 +940,15 @@ local function InitDropdowns()
     ElvUI_Hook()
 end
 
+-- Stock-UI fallback: re-position dropdowns when the user toggles map size
+-- via Blizzard's built-in buttons. Magnify (and similar) call
+-- MMM.PositionDropdowns() directly; this hook covers the no-Magnify case.
+-- Idempotent with external callers.
+local _origToggleSizeUp   = WorldMap_ToggleSizeUp
+local _origToggleSizeDown = WorldMap_ToggleSizeDown
+WorldMap_ToggleSizeUp   = function(...) if _origToggleSizeUp   then _origToggleSizeUp(...)   end PositionDropdowns() end
+WorldMap_ToggleSizeDown = function(...) if _origToggleSizeDown then _origToggleSizeDown(...) end PositionDropdowns() end
+
 local uiFrame = CreateFrame("Frame")
 uiFrame:RegisterEvent("VARIABLES_LOADED")
 uiFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
