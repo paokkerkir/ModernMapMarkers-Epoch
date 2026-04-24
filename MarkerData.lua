@@ -158,7 +158,8 @@ MMM_DefaultPoints = {
     {"Stranglethorn", 0.257, 0.73, "Boat to Ratchet", "boat", "Neutral", nil, "Barrens"},
     {"Tirisfal", 0.606, 0.583, "Zeppelins to Orgrimmar & Grom'Gol", "zepp", "Horde", nil, {"Ogrimmar", "Stranglethorn"}},
     {"Stranglethorn", 0.312, 0.298, "Zeppelins to Tirisfal Glades & Orgrimmar", "zepp", "Horde", nil, {"Tirisfal", "Ogrimmar"}},
-    {"Stormwind", 0.216, 0.562, "Vendor Boat", "boat", "Alliance", nil, "Stormwind"},
+	--PvP Vendor
+    {"Stormwind", 0.216, 0.562, "Vendor Boat", "pvp", "Alliance", nil, "Stormwind"},
     -- Portals
     {"Undercity", 0.852, 0.17, "Portal to Blasted Lands", "portal", "Horde", nil, "BlastedLands"},
     {"Stormwind", 0.490, 0.873, "Portal to Blasted Lands", "portal", "Alliance", nil, "BlastedLands"},
