@@ -214,6 +214,10 @@ MMM_DefaultPoints = {
 
     {"Teldrassil", 0.552, 0.949, "Boat to Auberdine", "boat", "Alliance", nil, "Darkshore"},
 
+	-- PvP Vendors
+	
+	{"Ogrimmar", 0.928, 0.526, "PvP Vendors", "pvp", "Horde", nil, nil},
+
     -- Portals
 
     {"Darnassis", 0.405, 0.817, "Portal to Blasted Lands", "portal", "Alliance", nil, "BlastedLands"},
