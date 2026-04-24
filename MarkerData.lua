@@ -97,8 +97,8 @@ MMM_DefaultPoints = {
     -- Transport
     -- PE places the Horde zeppelin towers inside Orgrimmar (Valley of
     -- Winds), not on the WotLK platform NW of the city in Durotar.
-    {"Ogrimmar", 0.90, 0.527, "Zeppelin to Tirisfal Glades", "zepp", "Horde", nil, "Tirisfal"},
-    {"Ogrimmar", 0.83, 0.58, "Zeppelin to Grom'Gol", "zepp", "Horde", nil, "Stranglethorn"},
+    {"Ogrimmar", 0.92, 0.48, "Zeppelin to Tirisfal Glades", "zepp", "Horde", nil, "Tirisfal"},
+    {"Ogrimmar", 0.825, 0.62, "Zeppelin to Grom'Gol", "zepp", "Horde", nil, "Stranglethorn"},
     {"Barrens", 0.636, 0.389, "Boat to Booty Bay", "boat", "Neutral", nil, "Stranglethorn"},
     {"Darkshore", 0.333, 0.399, "Boat to Rut'Theran Village", "boat", "Alliance", nil, "Teldrassil"},
     {"Darkshore", 0.325, 0.436, "Boat to Menethil Harbor", "boat", "Alliance", nil, "Wetlands"},
@@ -106,6 +106,8 @@ MMM_DefaultPoints = {
     {"Feralas", 0.311, 0.395, "Boat to Forgotten Coast", "boat", "Alliance", nil, "Feralas"},
     {"Feralas", 0.431, 0.428, "Boat to Sardor Isle", "boat", "Alliance", nil, "Feralas"},
     {"Teldrassil", 0.552, 0.949, "Boat to Auberdine", "boat", "Alliance", nil, "Darkshore"},
+    --PvP Vendors
+    {"Ogrimmar", 0.93, 0.54, "PvP Vendors", "pvp", "Horde", "15 to 55 PvP Gear", nil, "Ogrimmar"},
     -- Portals
     {"Darnassis", 0.405, 0.817, "Portal to Blasted Lands", "portal", "Alliance", nil, "BlastedLands"},
     {"Ogrimmar", 0.381, 0.857, "Portal to Blasted Lands", "portal", "Horde", nil, "BlastedLands"},
@@ -159,7 +161,7 @@ MMM_DefaultPoints = {
     {"Tirisfal", 0.606, 0.583, "Zeppelins to Orgrimmar & Grom'Gol", "zepp", "Horde", nil, {"Ogrimmar", "Stranglethorn"}},
     {"Stranglethorn", 0.312, 0.298, "Zeppelins to Tirisfal Glades & Orgrimmar", "zepp", "Horde", nil, {"Tirisfal", "Ogrimmar"}},
     --PvP Vendor
-    {"Stormwind", 0.216, 0.562, "Vendor Boat", "pvp", "Alliance", nil},
+    {"Stormwind", 0.216, 0.562, "PvP Vendors", "pvp", "Alliance", "15 to 55 PvP Gear", nil, "Stormwind"},
     -- Portals
     {"Undercity", 0.852, 0.17, "Portal to Blasted Lands", "portal", "Horde", nil, "BlastedLands"},
     {"Stormwind", 0.490, 0.873, "Portal to Blasted Lands", "portal", "Alliance", nil, "BlastedLands"},
