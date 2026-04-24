@@ -216,7 +216,7 @@ MMM_DefaultPoints = {
 
 	-- PvP Vendors
 	
-	{"Ogrimmar", 0.928, 0.526, "PvP Vendors", "pvp", "Horde", nil, nil},
+	{"Ogrimmar", 0.928, 0.526, "PvP Vendors", "pvp", "Horde", "15 to 45 PvP Gear", nil},
 
     -- Portals
 
@@ -324,7 +324,7 @@ MMM_DefaultPoints = {
 
 	--PvP Vendor
 
-    {"Stormwind", 0.216, 0.562, "Vendor Boat", "pvp", "Alliance", nil},
+    {"Stormwind", 0.216, 0.562, "PvP Vendors", "pvp", "Alliance", "15 to 45 PvP Gear"},
 
     -- Portals
 
