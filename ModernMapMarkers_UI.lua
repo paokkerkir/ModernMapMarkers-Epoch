@@ -722,8 +722,21 @@ local function PositionDropdowns()
                                and elvuiE.global
                                and elvuiE.global.general
                                and elvuiE.global.general.smallerWorldMap
+    local windowed          = WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE
     MMMFilterDropdown:ClearAllPoints()
-    if hasElvUISmallerMap then
+    if windowed then
+        MMMFilterDropdown:SetScale(0.8)
+        MMMFindDropdown:SetScale(0.8)
+        if findPanel then findPanel:SetScale(0.8) end
+        if hasQuestie or hasWDM then
+            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", -19, -99)
+        else
+            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", -19, -55)
+        end
+    elseif hasElvUISmallerMap then
+        MMMFilterDropdown:SetScale(1)
+        MMMFindDropdown:SetScale(1)
+        if findPanel then findPanel:SetScale(1) end
         if (hasMapster and hasQuestie) or hasWDM then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 18, -79)
         elseif hasMapster then
@@ -734,6 +747,9 @@ local function PositionDropdowns()
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 18, -50)
         end
     elseif hasElvUI then
+        MMMFilterDropdown:SetScale(1)
+        MMMFindDropdown:SetScale(1)
+        if findPanel then findPanel:SetScale(1) end
         if (hasMapster and hasQuestie) or hasWDM then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", -18, -111)
         elseif hasMapster then
@@ -744,6 +760,9 @@ local function PositionDropdowns()
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrame, "TOPRIGHT", -188, -79)
         end
     else
+        MMMFilterDropdown:SetScale(1)
+        MMMFindDropdown:SetScale(1)
+        if findPanel then findPanel:SetScale(1) end
         if (hasMapster and hasQuestie) or hasWDM then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", 2, -111)
         elseif hasMapster then
@@ -813,6 +832,9 @@ local function CreateDropdowns()
             if not findPanel then
                 CreateFindPanel(findDropdown)
                 ElvUI_SkinPanel()
+                if WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE then
+                    findPanel:SetScale(0.8)
+                end
             end
             if findPanel:IsShown() then
                 findPanel:Hide()
@@ -865,6 +887,11 @@ local function InitDropdowns()
     end
     ElvUI_Hook()
 end
+
+local _origToggleSizeUp   = WorldMap_ToggleSizeUp
+local _origToggleSizeDown = WorldMap_ToggleSizeDown
+WorldMap_ToggleSizeUp   = function(...) if _origToggleSizeUp   then _origToggleSizeUp(...)   end PositionDropdowns() end
+WorldMap_ToggleSizeDown = function(...) if _origToggleSizeDown then _origToggleSizeDown(...) end PositionDropdowns() end
 
 local uiFrame = CreateFrame("Frame")
 uiFrame:RegisterEvent("VARIABLES_LOADED")
