@@ -722,6 +722,7 @@ local function PositionDropdowns()
     local hasMapster        = IsAddOnLoaded("Mapster")
     local hasQuestie        = IsAddOnLoaded("Questie-335")
     local hasWDM            = IsAddOnLoaded("WDM")
+    local hasPfQuest        = IsAddOnLoaded("pfQuest") and pfQuestMapDropdown ~= nil
     local hasElvUI          = elvuiS ~= nil
     local hasElvUISmallerMap = hasElvUI and elvuiE.global and elvuiE.global.general and elvuiE.global.general.smallerWorldMap
     MMMFilterDropdown:ClearAllPoints()
@@ -729,6 +730,10 @@ local function PositionDropdowns()
         -- Anchor to the close button which exists and is correctly placed in
         -- both fullscreen and windowed (minimode) map frames.
         MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 18, -8)
+    elseif hasPfQuest then
+        -- pfQuest places pfQuestMapDropdown at TOPRIGHT of WorldMapButton.
+        -- Stack MMM directly below it so they form a clean column.
+        MMMFilterDropdown:SetPoint("TOPRIGHT", pfQuestMapDropdown, "BOTTOMRIGHT", 0, 0)
     elseif hasElvUISmallerMap then
         if (hasMapster and hasQuestie) or hasWDM then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 18, -79)
@@ -762,6 +767,18 @@ local function PositionDropdowns()
     end
     MMMFindDropdown:ClearAllPoints()
     MMMFindDropdown:SetPoint("TOPRIGHT", MMMFilterDropdown, "BOTTOMRIGHT", 0, 0)
+
+    -- Re-anchor the find panel if it was already created, so the next
+    -- time it opens it uses the correct direction for the current mode.
+    if findPanel then
+        findPanel:Hide()  -- force closed on mode change; stale position is confusing
+        findPanel:ClearAllPoints()
+        if isMinimode then
+            findPanel:SetPoint("BOTTOMRIGHT", MMMFindDropdown, "TOPRIGHT", -16, 0)
+        else
+            findPanel:SetPoint("TOPRIGHT", MMMFindDropdown, "BOTTOMRIGHT", -16, 0)
+        end
+    end
 end
 
 -- Public wrapper so Magnify (and any other addon) can re-position the
@@ -829,6 +846,16 @@ local function CreateDropdowns()
             if findPanel:IsShown() then
                 findPanel:Hide()
             else
+                -- Re-anchor the panel each time it opens so minimode
+                -- (smaller frame, no room below) opens upward instead.
+                findPanel:ClearAllPoints()
+                local isMini = WORLDMAP_SETTINGS
+                               and WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE
+                if isMini then
+                    findPanel:SetPoint("BOTTOMRIGHT", MMMFindDropdown, "TOPRIGHT", -16, 0)
+                else
+                    findPanel:SetPoint("TOPRIGHT", MMMFindDropdown, "BOTTOMRIGHT", -16, 0)
+                end
                 -- Open on the player's current continent if valid (1-4).
                 local c = GetCurrentMapContinent()
                 if c >= 1 and c <= 4 then findActiveContinent = c end
@@ -921,5 +948,18 @@ uiFrame:SetScript("OnEvent", function()
         if not MMMFilterDropdown then InitDropdowns() end
         PositionDropdowns()
         this:UnregisterEvent("PLAYER_ENTERING_WORLD")
+
+        -- pfQuest creates pfQuestMapDropdown lazily inside AddWorldMapIntegration
+        -- which may run after VARIABLES_LOADED. Re-position once on the first
+        -- map open to guarantee pfQuestMapDropdown exists before we anchor to it.
+        local mmmFirstMapOpen = true
+        local origOnShow = WorldMapFrame:GetScript("OnShow")
+        WorldMapFrame:SetScript("OnShow", function()
+            if origOnShow then origOnShow(this) end
+            if mmmFirstMapOpen then
+                mmmFirstMapOpen = false
+                PositionDropdowns()
+            end
+        end)
     end
 end)
