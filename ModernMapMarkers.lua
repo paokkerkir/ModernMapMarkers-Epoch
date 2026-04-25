@@ -287,7 +287,8 @@ local function GetMarkerFromPool()
         markerPoolCount = markerPoolCount - 1
         return marker
     end
-    local marker = CreateFrame("Button", nil, WorldMapDetailFrame)
+    local parent = (MMM and MMM.pinHolder) or WorldMapDetailFrame
+    local marker = CreateFrame("Button", nil, parent)
     marker.texture   = marker:CreateTexture(nil, "OVERLAY")
     marker.highlight = marker:CreateTexture(nil, "HIGHLIGHT")
     marker.highlight:SetBlendMode("ADD")

@@ -17,7 +17,12 @@ local slower     = string.lower
 local markerLabel
 
 local function CreateMarkerLabel()
-    markerLabel = CreateFrame("Frame", "MMMMarkerLabelFrame", WorldMapDetailFrame)
+    -- Magnify reparents WorldMapDetailFrame as a panned/scaled scroll child,
+    -- so a label parented to it would pan and scale with map zoom. Parent to
+    -- WorldMapFrame in that case so the zone label stays fixed at the top of
+    -- the visible map at constant size. (Borrowed from upstream MMM-WotLK.)
+    local labelParent = IsAddOnLoaded("Magnify-WotLK") and WorldMapFrame or WorldMapDetailFrame
+    markerLabel = CreateFrame("Frame", "MMMMarkerLabelFrame", labelParent)
     markerLabel:SetFrameStrata("TOOLTIP")
     markerLabel:SetFrameLevel(WorldMapDetailFrame:GetFrameLevel() + 10)
     markerLabel:SetWidth(400)
@@ -740,13 +745,14 @@ local function PositionDropdowns()
                                and elvuiE.global.general.smallerWorldMap
 	local hasPfQuest        = (IsAddOnLoaded("pfQuest") or IsAddOnLoaded("pfQuest-wotlk")) and pfQuestMapDropdown ~= nil						   
     local windowed          = WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE
-    -- When pfQuest is loaded, measure its dropdown's actual height so we can
-    -- nudge our WorldMapPositioningGuide offset downward by the right amount.
-    -- We deliberately do NOT anchor to pfQuestMapDropdown itself: that frame
-    -- is a child of WorldMapFrame but Magnify rescales WorldMapScrollFrame
-    -- (a sibling) independently, so a cross-frame anchor produces incorrect
-    -- screen positions after a zoom. Using WorldMapPositioningGuide for both
-    -- pfQuest and MMM keeps everything in the same coordinate space.
+    -- pfQuest's dropdown was previously a child of WorldMapButton, which
+    -- Magnify reparented under the panned/scaled WorldMapDetailFrame, so we
+    -- couldn't anchor MMM to it directly and instead measured its height to
+    -- offset against WorldMapPositioningGuide. Recent pfQuest versions parent
+    -- pfQuestMapDropdown to WorldMapScrollFrame (Magnify) or
+    -- WorldMapDetailFrame (default) — both stable, mode-scaled viewports —
+    -- so cross-frame anchoring works again. We use BOTTOMRIGHT-of-pfQuest
+    -- when available; otherwise fall back to the legacy height-based offset.
     local pfQuestOffset = 0
     if hasPfQuest then
         pfQuestOffset = pfQuestMapDropdown:GetHeight() or 28
@@ -754,11 +760,23 @@ local function PositionDropdowns()
 
     MMMFilterDropdown:ClearAllPoints()
     if windowed then
-        MMMFilterDropdown:SetScale(0.8)
-        MMMFindDropdown:SetScale(0.8)
-        if findPanel then findPanel:SetScale(0.8) end
+        -- Match the map content's effective scale instead of a hardcoded 0.8.
+        -- The dropdowns are children of WorldMapFrame, which Magnify scales
+        -- by `preferredMinimodeScale` (~1.22 by default) ONLY in windowed
+        -- mode. With the old hardcoded 0.8, dropdown.eff = 0.8 * 1.22 ~= 0.98
+        -- under Magnify, so the buttons effectively didn't scale down.
+        -- Using WORLDMAP_SETTINGS.size (0.573 in windowed) gives
+        -- dropdown.eff = 0.573 * WMF.eff, which equals the actual map
+        -- content's effective scale in both default 3.3.5 and Magnify.
+        local mapScale = (WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.size) or 0.573
+        MMMFilterDropdown:SetScale(mapScale)
+        MMMFindDropdown:SetScale(mapScale)
+        if findPanel then findPanel:SetScale(mapScale) end
         if hasPfQuest then
-            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", -19, -55 - pfQuestOffset)
+            -- Stack directly under pfQuest's dropdown. Both frames now have
+            -- equal effective scale (= map content scale), so cross-frame
+            -- anchoring lines up cleanly in default and Magnify.
+            MMMFilterDropdown:SetPoint("TOPRIGHT", pfQuestMapDropdown, "BOTTOMRIGHT", 0, -2)
         elseif hasQuestie or hasWDM then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", -19, -99)
         else
@@ -870,7 +888,9 @@ local function CreateDropdowns()
                 CreateFindPanel(findDropdown)
                 ElvUI_SkinPanel()
                 if WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE then
-                    findPanel:SetScale(0.8)
+                    -- Match the map content scale; PositionDropdowns will
+                    -- keep this in sync on subsequent mode changes.
+                    findPanel:SetScale(WORLDMAP_SETTINGS.size)
                 end
             end
             if findPanel:IsShown() then
