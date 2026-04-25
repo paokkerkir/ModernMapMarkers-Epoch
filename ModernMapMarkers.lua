@@ -440,46 +440,59 @@ local function IsWorldMapFullscreen()
 end
 
 local function OnWorldBossClick()
-    -- 1. Force load the WorldEvents module (where Volchan, etc. live)
-    if not IsAddOnLoaded("AtlasLoot_WorldEvents") then
-        LoadAddOn("AtlasLoot_WorldEvents")
-    end
-
-    -- 2. API Check: We only need the show function
-    if not AtlasLoot_ShowBossLoot then
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000MMM Error:|r AtlasLoot_ShowBossLoot function not found.")
+    if not AtlasLoot_ShowBossLoot or not AtlasFrame or not Atlas_Refresh then
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000AtlasLoot not loaded.|r")
         return
     end
+	
+    local bossName    = this.markerName
+    local dataID      = WORLD_BOSS_MAP[bossName]
+    local atlasIndex  = ATLAS_OUTDOOR_INDEX[bossName]
+    local displayName = bossName
 
-    local bossName = this.markerName
-	    -- Use the atlasID from MarkerData.lua (e.g., "Volchan")
-    local atlasID  = this.atlasID or (WORLD_BOSS_MAP and WORLD_BOSS_MAP[bossName])
-
-    if not atlasID then
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000MMM:|r No AtlasID mapping found for " .. tostring(bossName))
-        return
+    if this.isEmeraldDragon then
+        dataID, displayName = GetRandomNightmareDragon()
+        atlasIndex = 4
     end
 
-    -- 3. Close World Map so we can see the loot window
-    if WorldMapFrame:IsVisible() and IsWorldMapFullscreen() then
-        HideUIPanel(WorldMapFrame)
-    end
-
-    -- 4. Set the Anchor Frame
-    -- Since AtlasFrame is missing, we use AtlasLootDefaultFrame (the Standalone window)
-    local pFrame = AtlasLootDefaultFrame or UIParent
-
-    -- 5. Show the Loot
-    local ok, err = pcall(AtlasLoot_ShowBossLoot, atlasID, bossName, pFrame)
-    
-    if ok then
+   if dataID and atlasIndex then
         PlaySoundFile(SOUND_CLICK)
-        -- If it's the standalone browser, ensure it's actually visible
-        if AtlasLootDefaultFrame then 
-            AtlasLootDefaultFrame:Show() 
+        if WorldMapFrame:IsVisible() and IsWorldMapFullscreen() then
+            HideUIPanel(WorldMapFrame)
 			        end
-			    else
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000MMM Hook Error:|r " .. tostring(err))
+        WithContinentSort(function()
+            if AtlasFrame and AtlasOptions then
+                AtlasOptions.AtlasType = 7   -- Outdoor Encounters
+                AtlasOptions.AtlasZone = atlasIndex
+                local savedAutoSelect = AtlasOptions.AtlasAutoSelect
+                AtlasOptions.AtlasAutoSelect = false
+                Atlas_Refresh()
+                AtlasFrame:SetFrameStrata("FULLSCREEN")
+                AtlasFrame:Show()
+                AtlasOptions.AtlasAutoSelect = savedAutoSelect
+                -- Remember this page for HookAtlasToggle (manual re-opens).
+                mmmAtlasType = 7
+                mmmAtlasZone = atlasIndex
+                mmmZoneID = ATLAS_DROPDOWNS[7] and ATLAS_DROPDOWNS[7][atlasIndex]
+            end
+        end)
+        -- Capture into locals so the closure doesn't capture 'this'.
+        local boss_dataID      = dataID
+        local boss_displayName = displayName
+        local delayFrame       = CreateFrame("Frame")
+        delayFrame.timer       = 0
+        delayFrame:SetScript("OnUpdate", function()
+            this.timer = this.timer + arg1
+            if this.timer >= 0.1 then
+                this:SetScript("OnUpdate", nil)
+                local ok = pcall(AtlasLoot_ShowBossLoot, boss_dataID, boss_displayName, AtlasFrame)
+                if not ok then
+                    DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000Error loading AtlasLoot data.|r")
+                end
+            end
+        end)
+    else
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000No Atlas data found for \"" .. bossName .. "\".|r")
     end
 end
 
