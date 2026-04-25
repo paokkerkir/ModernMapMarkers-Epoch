@@ -17,7 +17,15 @@ local slower     = string.lower
 local markerLabel
 
 local function CreateMarkerLabel()
-    markerLabel = CreateFrame("Frame", "MMMMarkerLabelFrame", WorldMapDetailFrame)
+    local labelParent
+    if IsAddOnLoaded("Cartographer") then
+        labelParent = UIParent
+    elseif IsAddOnLoaded("Magnify-WotLK") then
+        labelParent = WorldMapFrame
+    else
+        labelParent = WorldMapDetailFrame
+    end
+    markerLabel = CreateFrame("Frame", "MMMMarkerLabelFrame", labelParent)
     markerLabel:SetFrameStrata("TOOLTIP")
     markerLabel:SetFrameLevel(WorldMapDetailFrame:GetFrameLevel() + 10)
     markerLabel:SetWidth(400)
@@ -36,8 +44,12 @@ local function CreateMarkerLabel()
         markerLabel.name:SetShadowColor(r, g, b, a)
         local sx, sy = areaLabel:GetShadowOffset()
         markerLabel.name:SetShadowOffset(sx, sy)
-        local tr, tg, tb = areaLabel:GetTextColor()
-        markerLabel.name:SetTextColor(tr, tg, tb)
+        if IsAddOnLoaded("Cartographer") then
+            markerLabel.name:SetTextColor(1, 1, 1)
+        else
+            local tr, tg, tb = areaLabel:GetTextColor()
+            markerLabel.name:SetTextColor(tr, tg, tb)
+        end
     else
         markerLabel.name:SetFont("Fonts\\FRIZQT__.TTF", 18, "OUTLINE, THICKOUTLINE")
         markerLabel.name:SetShadowColor(0, 0, 0, 1)
@@ -82,6 +94,12 @@ end
 function MMM.ShowMarkerInfo(name, info, hint)
     if not markerLabel then CreateMarkerLabel() end
     if WorldMapFrameAreaLabel then WorldMapFrameAreaLabel:Hide() end
+    if IsAddOnLoaded("Cartographer") and WorldMapFrameAreaFrame then
+        WorldMapFrameAreaFrame:Hide()
+    end
+    if IsAddOnLoaded("Cartographer") then
+        markerLabel.name:SetTextColor(1, 1, 1)
+    end
     markerLabel.name:SetText(name)
 
     if info and info ~= "" then
@@ -117,6 +135,9 @@ end
 function MMM.HideMarkerInfo()
     if markerLabel then markerLabel:Hide() end
     if WorldMapFrameAreaLabel then WorldMapFrameAreaLabel:Show() end
+    if IsAddOnLoaded("Cartographer") and WorldMapFrameAreaFrame then
+        WorldMapFrameAreaFrame:Show()
+    end
 end
 
 -- ============================================================
@@ -137,7 +158,8 @@ end
 function MMM.HideDestMenu() HideDestMenu() end
 
 local function CreateDestMenu()
-    destMenu = CreateFrame("Frame", "MMMDestMenu", WorldMapDetailFrame)
+    local menuParent = (IsAddOnLoaded("Cartographer") and UIParent) or WorldMapDetailFrame
+    destMenu = CreateFrame("Frame", "MMMDestMenu", menuParent)
     destMenu:SetFrameStrata("TOOLTIP")
     destMenu:SetFrameLevel(WorldMapDetailFrame:GetFrameLevel() + 20)
     destMenu:SetBackdrop({
@@ -150,7 +172,7 @@ local function CreateDestMenu()
     destMenu.buttons = {}
     destMenu:Hide()
 
-    destMenu.intercept = CreateFrame("Button", nil, WorldMapDetailFrame)
+    destMenu.intercept = CreateFrame("Button", nil, menuParent)
     destMenu.intercept:SetAllPoints(WorldMapDetailFrame)
     destMenu.intercept:SetFrameStrata("TOOLTIP")
     destMenu.intercept:SetFrameLevel(WorldMapDetailFrame:GetFrameLevel() + 19)
@@ -531,8 +553,10 @@ local function UpdateFindButtonStates()
 end
 
 local function CreateFindPanel(anchorFrame)
-    findPanel = CreateFrame("Frame", "MMMFindPanel", WorldMapFrame)
-    findPanel:SetFrameStrata("HIGH")
+    local panelParent = (IsAddOnLoaded("Cartographer") and UIParent) or WorldMapFrame
+    findPanel = CreateFrame("Frame", "MMMFindPanel", panelParent)
+    local panelStrata = IsAddOnLoaded("Cartographer") and WorldMapFrame:GetFrameStrata() or "HIGH"
+    findPanel:SetFrameStrata(panelStrata)
     findPanel:SetFrameLevel(100)
     findPanel:SetWidth(PANEL_WIDTH)
     findPanel:SetHeight(100)
@@ -723,6 +747,7 @@ local function PositionDropdowns()
                                and elvuiE.global.general
                                and elvuiE.global.general.smallerWorldMap
     local windowed          = WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE
+    local hasCartographer   = IsAddOnLoaded("Cartographer")
     MMMFilterDropdown:ClearAllPoints()
     if windowed then
         MMMFilterDropdown:SetScale(0.8)
@@ -763,9 +788,9 @@ local function PositionDropdowns()
         MMMFilterDropdown:SetScale(1)
         MMMFindDropdown:SetScale(1)
         if findPanel then findPanel:SetScale(1) end
-        if (hasMapster and hasQuestie) or hasWDM then
+        if ((hasMapster or hasCartographer) and hasQuestie) or hasWDM then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", 2, -111)
-        elseif hasMapster then
+        elseif (hasMapster or hasCartographer) then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", 2, -79)
         elseif hasQuestie or hasWDM then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrame, "TOPRIGHT", -168, -111)
@@ -802,19 +827,61 @@ end
 
 local function CreateDropdowns()
     local parent = WorldMapFrame
-    local filterDropdown = CreateFrame("Frame", "MMMFilterDropdown", parent, "UIDropDownMenuTemplate")
-    local findDropdown   = CreateFrame("Frame", "MMMFindDropdown",   parent, "UIDropDownMenuTemplate")
-    local baseLevel = parent:GetFrameLevel() + 10
+    local uiParent = (IsAddOnLoaded("Cartographer") and UIParent) or parent
+    local filterDropdown = CreateFrame("Frame", "MMMFilterDropdown", uiParent, "UIDropDownMenuTemplate")
+    local findDropdown   = CreateFrame("Frame", "MMMFindDropdown",   uiParent, "UIDropDownMenuTemplate")
 
-    filterDropdown:SetFrameStrata(parent:GetFrameStrata())
-    filterDropdown:SetFrameLevel(baseLevel)
-    findDropdown:SetFrameStrata(parent:GetFrameStrata())
-    findDropdown:SetFrameLevel(baseLevel)
+    local function GetEffectiveStrata()
+        if IsAddOnLoaded("Cartographer") then
+            return WorldMapFrame:GetFrameStrata()
+        end
+        return parent:GetFrameStrata()
+    end
+
+    local function ApplyDropdownStrata()
+        local strata = GetEffectiveStrata()
+        local baseLevel = parent:GetFrameLevel() + 10
+        filterDropdown:SetFrameStrata(strata)
+        filterDropdown:SetFrameLevel(baseLevel)
+        findDropdown:SetFrameStrata(strata)
+        findDropdown:SetFrameLevel(baseLevel)
+        local filterBtn = getglobal("MMMFilterDropdownButton")
+        if filterBtn then filterBtn:SetFrameLevel(baseLevel + 2) end
+        local findBtn = getglobal("MMMFindDropdownButton")
+        if findBtn then findBtn:SetFrameLevel(baseLevel + 2) end
+        if findPanel then
+            findPanel:SetFrameStrata(strata)
+        end
+    end
+
+    ApplyDropdownStrata()
+
+    hooksecurefunc(WorldMapFrame, "SetFrameStrata", function()
+        ApplyDropdownStrata()
+    end)
+
+    if IsAddOnLoaded("Cartographer") then
+        local origOnShow = WorldMapFrame:GetScript("OnShow")
+        WorldMapFrame:SetScript("OnShow", function()
+            if origOnShow then origOnShow(this) end
+            filterDropdown:Show()
+            findDropdown:Show()
+        end)
+        local origOnHide2 = WorldMapFrame:GetScript("OnHide")
+        WorldMapFrame:SetScript("OnHide", function()
+            if origOnHide2 then origOnHide2(this) end
+            filterDropdown:Hide()
+            findDropdown:Hide()
+            if findPanel then findPanel:Hide() end
+        end)
+        if not WorldMapFrame:IsVisible() then
+            filterDropdown:Hide()
+            findDropdown:Hide()
+        end
+    end
 
     local filterBtn = getglobal("MMMFilterDropdownButton")
-    if filterBtn then filterBtn:SetFrameLevel(baseLevel + 2) end
-    local findBtn = getglobal("MMMFindDropdownButton")
-    if findBtn then findBtn:SetFrameLevel(baseLevel + 2) end
+    local findBtn   = getglobal("MMMFindDropdownButton")
 
     PositionDropdowns()
 
