@@ -749,7 +749,16 @@ local function PositionDropdowns()
     local windowed          = WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE
     local hasCartographer   = IsAddOnLoaded("Cartographer")
     MMMFilterDropdown:ClearAllPoints()
-    if windowed then
+    if windowed and hasElvUI then
+        MMMFilterDropdown:SetScale(0.8)
+        MMMFindDropdown:SetScale(0.8)
+        if findPanel then findPanel:SetScale(0.8) end
+        if hasQuestie or hasWDM then
+            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 28, -44)
+        else
+            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 28, -5)
+        end
+    elseif windowed then
         MMMFilterDropdown:SetScale(0.8)
         MMMFindDropdown:SetScale(0.8)
         if findPanel then findPanel:SetScale(0.8) end
