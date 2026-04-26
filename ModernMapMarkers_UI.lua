@@ -980,5 +980,31 @@ uiFrame:SetScript("OnEvent", function()
         if not MMMFilterDropdown then InitDropdowns() end
         PositionDropdowns()
         this:UnregisterEvent("PLAYER_ENTERING_WORLD")
+		
+		-- Mapster replaces the size-toggle button OnClick handlers with
+        -- its own Mapster:ToggleMapSize() which calls SizeUp/SizeDown
+        -- directly and never goes through the WorldMap_ToggleSizeUp/
+        -- SizeDown globals hooked above. The Mapster addon object is a
+        -- local in every Mapster file (no global), so we have to fetch it
+        -- via LibStub the same way Mapster's own modules do.
+		-- (Taken from the Epoch version of the addon)
+        if IsAddOnLoaded("Mapster") and LibStub then
+            local AceAddon = LibStub("AceAddon-3.0", true)
+            local mapster  = AceAddon and AceAddon:GetAddon("Mapster", true)
+            if mapster then
+                if mapster.ToggleMapSize then
+                    hooksecurefunc(mapster, "ToggleMapSize", PositionDropdowns)
+                end
+                -- Refresh() can also fire SizeUp/SizeDown (profile change),
+                -- so cover those too. Hook payloads run with `mapster` as
+                -- their first arg; PositionDropdowns ignores arguments.
+                if mapster.SizeUp then
+                    hooksecurefunc(mapster, "SizeUp",   PositionDropdowns)
+                end
+                if mapster.SizeDown then
+                    hooksecurefunc(mapster, "SizeDown", PositionDropdowns)
+                end
+            end
+        end
     end
 end)
