@@ -17,14 +17,16 @@
 --   info     : level range, examples: "52-60" or "80"
 --              faction string: "Alliance", "Horde" & "Neutral"
 --              nil for non-combat world bosses handled separately
---   atlasID  : Atlas map KEY (string), or nil if no Atlas page exists.
---              Examples: "BlackrockDepths", "TheDeadmines", "SMArmory".
---              Matches a key in AtlasMaps (from the Atlas addon). MMM
---              resolves this to AtlasOptions.AtlasType/AtlasZone at click
---              time by searching ATLAS_DROPDOWNS, so it survives any
---              re-sort, added maps (PE: BaradinHold, GlittermurkMines,
---              StonetalonCaverns), or plugin reorders. Numeric indices
---              are still accepted for legacy data but are fragile.
+--   atlasID  : ID string whose meaning depends on marker type, or nil.
+--              dungeon/raid/worldboss use different namespaces:
+--                dungeon   - Atlas map KEY. Matched against ATLAS_DROPDOWNS
+--                            to open the Atlas instance map.
+--                            Examples: "BlackrockDepths", "TheDeadmines".
+--                raid      - AtlasLoot module/boss ID. Passed directly to
+--                            AtlasLoot_ShowBossLoot to open the loot browser.
+--                            Examples: "MoltenCore", "OnyxiaTrash".
+--                worldboss - AtlasLoot boss ID (same as raid). Falls back to
+--                            WORLD_BOSS_MAP in ModernMapMarkers.lua if nil.
 --   slot8    : optional, one of:
 --
 --              - Transport destination(s) â€” boat / zepp / tram / portal only:
@@ -86,7 +88,7 @@ MMM_DefaultPoints = {
  --   {"Tanaris", 0.678, 0.512, "The Culling of Stratholme", "dungeon", "75-80", nil},
     -- Raids
     -- Onyxia's Lair, AQ20/AQ40, and Hyjal Summit are not in PE Atlas.
-    {"Dustwallow", 0.529, 0.777, "Onyxia's Lair", "raid", "60", OnyxiasLair},
+    {"Dustwallow", 0.529, 0.777, "Onyxia's Lair", "raid", "60", "OnyxiaTrash"},
 --    {"Silithus", 0.305, 0.987, "Ruins of Ahn'Qiraj", "raid", "60", nil},
 --    {"Silithus", 0.269, 0.987, "Temple of Ahn'Qiraj", "raid", "60", nil},
  --   {"Tanaris", 0.67, 0.45, "Hyjal Summit", "raid", "70", nil},

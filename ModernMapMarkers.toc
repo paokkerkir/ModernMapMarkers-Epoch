@@ -2,7 +2,7 @@
 ## Title: |cff7fff7fM|cffffffffodern |cff7fff7fM|cffffffffap |cff7fff7fM|cffffffffarkers
 ## Notes: Shows dungeon, raid, world boss, boat, zeppelin, tram & portal locations on the world map.
 ## Author: Drakensangs, paokkerkir, thezephyrsong
-## Version: 3.46-epoch
+## Version: 3.47-epoch
 ## OptionalDeps: Atlas, AtlasLoot, AtlasQuest, WDM, Questie-335, Mapster, ElvUI, AtlasLootProjectEpoch
 ## SavedVariablesPerCharacter: ModernMapMarkersDB
 

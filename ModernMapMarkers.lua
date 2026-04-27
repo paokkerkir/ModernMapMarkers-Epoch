@@ -32,15 +32,15 @@ local TEXTURES = {
 }
 
 local WORLD_BOSS_MAP = {
-	["Azuregos"]            = "Azuregos",
-   	["Corrupted Ancient"]   = "Corruptedancient",
-    	["Gonzor"]              = "Gonzor",
-    	["King Gnok"]           = "Kinggnok",
-    	["King Mosh"]           = "KingMosh",
-    	["Silithid Lurker"]     = "Silithidlurker",
-    	["Volchan"]             = "Volchan",
-    	["Lord Kazzak"]         = "LordKazzak",
-    	["Winterspring Boss"]   = "WinterspringBoss",}
+    ["Corrupted Ancient"]   = "Corruptedancient",
+    ["Gonzor"]              = "Gonzor",
+    ["King Gnok"]           = "Kinggnok",
+    ["King Mosh"]           = "KingMosh",
+    ["Silithid Lurker"]     = "Silithidlurker",
+    ["Volchan"]             = "Volchan",
+    ["Lord Kazzak"]         = "LordKazzak",
+    ["Winterspring Boss"]   = "WinterspringBoss",
+}
 
 local ATLAS_OUTDOOR_INDEX = {
     ["Azuregos"]                            = 1,
@@ -441,59 +441,40 @@ local function IsWorldMapFullscreen()
 end
 
 local function OnWorldBossClick()
-    if not AtlasLoot_ShowBossLoot or not AtlasFrame or not Atlas_Refresh then
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000AtlasLoot not loaded.|r")
-        return
-    end
-	
-    local bossName    = this.markerName
-    local dataID      = WORLD_BOSS_MAP[bossName]
-    local atlasIndex  = ATLAS_OUTDOOR_INDEX[bossName]
-    local displayName = bossName
-
-    if this.isEmeraldDragon then
-        dataID, displayName = GetRandomNightmareDragon()
-        atlasIndex = 4
+    if not IsAddOnLoaded("AtlasLoot_WorldEvents") then
+        LoadAddOn("AtlasLoot_WorldEvents")
     end
 
-   if dataID and atlasIndex then
-        PlaySoundFile(SOUND_CLICK)
-        if WorldMapFrame:IsVisible() and IsWorldMapFullscreen() then
-            HideUIPanel(WorldMapFrame)
-			        end
-        WithContinentSort(function()
-            if AtlasFrame and AtlasOptions then
-                AtlasOptions.AtlasType = 7   -- Outdoor Encounters
-                AtlasOptions.AtlasZone = atlasIndex
-                local savedAutoSelect = AtlasOptions.AtlasAutoSelect
-                AtlasOptions.AtlasAutoSelect = false
-                Atlas_Refresh()
-                AtlasFrame:SetFrameStrata("FULLSCREEN")
-                AtlasFrame:Show()
-                AtlasOptions.AtlasAutoSelect = savedAutoSelect
-                -- Remember this page for HookAtlasToggle (manual re-opens).
-                mmmAtlasType = 7
-                mmmAtlasZone = atlasIndex
-                mmmZoneID = ATLAS_DROPDOWNS[7] and ATLAS_DROPDOWNS[7][atlasIndex]
-            end
-        end)
-        -- Capture into locals so the closure doesn't capture 'this'.
-        local boss_dataID      = dataID
-        local boss_displayName = displayName
-        local delayFrame       = CreateFrame("Frame")
-        delayFrame.timer       = 0
-        delayFrame:SetScript("OnUpdate", function()
-            this.timer = this.timer + arg1
-            if this.timer >= 0.1 then
-                this:SetScript("OnUpdate", nil)
-                local ok = pcall(AtlasLoot_ShowBossLoot, boss_dataID, boss_displayName, AtlasFrame)
-                if not ok then
-                    DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000Error loading AtlasLoot data.|r")
-                end
-            end
-        end)
-    else
-        DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000No Atlas data found for \"" .. bossName .. "\".|r")
+    if WorldMapFrame:IsVisible() then
+        WorldMapFrame:Hide()
+    end
+
+    local bossName = this.markerName
+    local atlasID  = this.atlasID or (WORLD_BOSS_MAP and WORLD_BOSS_MAP[bossName])
+
+    if atlasID and AtlasLoot_ShowBossLoot then
+        if AtlasLootDefaultFrame then
+            AtlasLootDefaultFrame:Show()
+        end
+
+        local epochStandaloneAnchor = {
+            "TOPLEFT",
+            "AtlasLootDefaultFrame_LootBackground",
+            "TOPLEFT",
+            2,
+            -2,
+        }
+
+        if AtlasLootItemsFrame then
+            AtlasLootItemsFrame.refresh = { nil, nil, nil, nil }
+        end
+
+        local ok, err = pcall(AtlasLoot_ShowBossLoot, atlasID, bossName, epochStandaloneAnchor)
+        if ok then
+            PlaySoundFile(SOUND_CLICK)
+        else
+            DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000MMM Hook Error:|r " .. tostring(err))
+        end
     end
 end
 
@@ -530,39 +511,97 @@ local function ResolveAtlasID(atlasID, continent)
 end
 
 local function OnAtlasClick()
-    if not (this.atlasID and AtlasFrame and AtlasOptions) then return end
-    PlaySoundFile(SOUND_CLICK)
+    if not this.atlasID then return end
     local atlasID = this.atlasID
-    local continent = GetCurrentMapContinent()
-    if WorldMapFrame:IsVisible() and IsWorldMapFullscreen() then
-        HideUIPanel(WorldMapFrame)
-    end
-    WithContinentSort(function()
-        -- Resolve inside the closure: WithContinentSort repopulates
-        -- ATLAS_DROPDOWNS before calling us, so the search hits the
-        -- SortBy=1 layout regardless of the user's saved sort mode.
-        local atlasType, atlasZone = ResolveAtlasID(atlasID, continent)
-        if not atlasType then
-            DEFAULT_CHAT_FRAME:AddMessage(
-                "|cFFFF0000MMM: Atlas map \""
-                .. tostring(atlasID)
-                .. "\" not available in this Atlas build.|r")
-            return
+    local kind    = this.markerKind
+
+    if kind == "dungeon" then
+        -- Dungeons: open the Atlas instance map as before.
+        if not (AtlasFrame and AtlasOptions) then return end
+        PlaySoundFile(SOUND_CLICK)
+        local continent = GetCurrentMapContinent()
+        if WorldMapFrame:IsVisible() and IsWorldMapFullscreen() then
+            HideUIPanel(WorldMapFrame)
         end
-        AtlasOptions.AtlasType = atlasType
-        AtlasOptions.AtlasZone = atlasZone
-        Atlas_Refresh()
-        AtlasFrame:SetFrameStrata("FULLSCREEN")
-        local savedAutoSelect = AtlasOptions.AtlasAutoSelect
-        AtlasOptions.AtlasAutoSelect = false
-        AtlasFrame:Show()
-        AtlasOptions.AtlasAutoSelect = savedAutoSelect
-        -- Remember this page for HookAtlasToggle (manual re-opens).
-        mmmAtlasType = atlasType
-        mmmAtlasZone = atlasZone
-        mmmZoneID = ATLAS_DROPDOWNS[atlasType] and ATLAS_DROPDOWNS[atlasType][atlasZone]
-    end)
-    if AtlasQuestFrame then AtlasQuestFrame:Show() end
+        WithContinentSort(function()
+            local atlasType, atlasZone = ResolveAtlasID(atlasID, continent)
+            if not atlasType then
+                DEFAULT_CHAT_FRAME:AddMessage(
+                    "|cFFFF0000MMM: Atlas map \""
+                    .. tostring(atlasID)
+                    .. "\" not available in this Atlas build.|r")
+                return
+            end
+            AtlasOptions.AtlasType = atlasType
+            AtlasOptions.AtlasZone = atlasZone
+            Atlas_Refresh()
+            AtlasFrame:SetFrameStrata("FULLSCREEN")
+            local savedAutoSelect = AtlasOptions.AtlasAutoSelect
+            AtlasOptions.AtlasAutoSelect = false
+            AtlasFrame:Show()
+            AtlasOptions.AtlasAutoSelect = savedAutoSelect
+            mmmAtlasType = atlasType
+            mmmAtlasZone = atlasZone
+            mmmZoneID = ATLAS_DROPDOWNS[atlasType] and ATLAS_DROPDOWNS[atlasType][atlasZone]
+        end)
+        if AtlasQuestFrame then AtlasQuestFrame:Show() end
+
+    elseif kind == "raid" then
+        -- Pre-load so AtlasLoot's Atlas_OnShow hook has data if Atlas opens.
+        if not IsAddOnLoaded("AtlasLoot_OriginalWoW") then
+            LoadAddOn("AtlasLoot_OriginalWoW")
+        end
+        local continent  = GetCurrentMapContinent()
+        local markerName = this.markerName or ""
+
+        -- String-key search in ATLAS_DROPDOWNS is sort-mode independent, so we can
+        -- pre-check here to decide whether to open Atlas or AtlasLoot standalone,
+        -- which lets us play the sound and hide the world map in the right order.
+        local preType = ATLAS_DROPDOWNS and AtlasFrame and AtlasOptions
+            and ResolveAtlasID(atlasID, continent)
+
+        if preType then
+            -- Raid has an Atlas map (e.g. Molten Core): open it.
+            PlaySoundFile(SOUND_CLICK)
+            if WorldMapFrame:IsVisible() and IsWorldMapFullscreen() then
+                HideUIPanel(WorldMapFrame)
+            end
+            WithContinentSort(function()
+                local atlasType, atlasZone = ResolveAtlasID(atlasID, continent)
+                if not atlasType then return end
+                AtlasOptions.AtlasType = atlasType
+                AtlasOptions.AtlasZone = atlasZone
+                Atlas_Refresh()
+                AtlasFrame:SetFrameStrata("FULLSCREEN")
+                local savedAutoSelect = AtlasOptions.AtlasAutoSelect
+                AtlasOptions.AtlasAutoSelect = false
+                AtlasFrame:Show()
+                AtlasOptions.AtlasAutoSelect = savedAutoSelect
+                mmmAtlasType = atlasType
+                mmmAtlasZone = atlasZone
+                mmmZoneID = ATLAS_DROPDOWNS[atlasType] and ATLAS_DROPDOWNS[atlasType][atlasZone]
+            end)
+        elseif AtlasLoot_ShowBossLoot then
+            -- No Atlas map: open AtlasLoot standalone loot browser.
+            if WorldMapFrame:IsVisible() then WorldMapFrame:Hide() end
+            PlaySoundFile(SOUND_CLICK)
+            if AtlasLootDefaultFrame then AtlasLootDefaultFrame:Show() end
+            local epochStandaloneAnchor = {
+                "TOPLEFT",
+                "AtlasLootDefaultFrame_LootBackground",
+                "TOPLEFT",
+                2,
+                -2,
+            }
+            if AtlasLootItemsFrame then
+                AtlasLootItemsFrame.refresh = { nil, nil, nil, nil }
+            end
+            local ok, err = pcall(AtlasLoot_ShowBossLoot, atlasID, markerName, epochStandaloneAnchor)
+            if not ok then
+                DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000MMM Hook Error:|r " .. tostring(err))
+            end
+        end
+    end
 end
 
 local function StartPinHighlight(pin)
