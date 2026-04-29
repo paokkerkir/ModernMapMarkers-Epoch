@@ -700,8 +700,8 @@ local elvuiSkinPanelDone     = false
 local function ElvUI_SkinDropdowns()
     if elvuiSkinDropdownsDone then return end
     if not elvuiS then return end
-    if MMMFilterDropdown then elvuiS:HandleDropDownBox(MMMFilterDropdown, 120) end
-    if MMMFindDropdown   then elvuiS:HandleDropDownBox(MMMFindDropdown,   120) end
+    if MMMFilterDropdown then elvuiS:HandleDropDownBox(MMMFilterDropdown, 134) end
+    if MMMFindDropdown   then elvuiS:HandleDropDownBox(MMMFindDropdown,   134) end
     elvuiSkinDropdownsDone = true
 end
 
@@ -746,23 +746,44 @@ local function PositionDropdowns()
                                and elvuiE.global
                                and elvuiE.global.general
                                and elvuiE.global.general.smallerWorldMap
+    -- pfQuest's dropdown was previously a child of WorldMapButton, which
+    -- Magnify reparented under the panned/scaled WorldMapDetailFrame, so we
+    -- couldn't anchor MMM to it directly and instead measured its height to
+    -- offset against WorldMapPositioningGuide. Recent pfQuest versions parent
+    -- pfQuestMapDropdown to WorldMapScrollFrame (Magnify) or
+    -- WorldMapDetailFrame (default) — both stable, mode-scaled viewports —
+    -- so cross-frame anchoring works again. We use BOTTOMRIGHT-of-pfQuest
+    -- when available; otherwise fall back to the legacy height-based offset.
+    local hasPfQuest        = (IsAddOnLoaded("pfQuest") or IsAddOnLoaded("pfQuest-wotlk")) and pfQuestMapDropdown ~= nil
+    local pfQuestOffset     = hasPfQuest and (pfQuestMapDropdown:GetHeight() or 28) or 0
     local windowed          = WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.size == WORLDMAP_WINDOWED_SIZE
     local hasCartographer   = IsAddOnLoaded("Cartographer")
     MMMFilterDropdown:ClearAllPoints()
     if windowed and hasElvUI then
-        MMMFilterDropdown:SetScale(0.8)
-        MMMFindDropdown:SetScale(0.8)
-        if findPanel then findPanel:SetScale(0.8) end
-        if hasQuestie or hasWDM then
+        -- Match the map content's effective scale instead of a hardcoded 0.8.
+        -- The dropdowns are children of WorldMapFrame, which Magnify scales
+        -- by `preferredMinimodeScale` (~1.22 by default) ONLY in windowed
+        -- mode. With the old hardcoded 0.8, dropdown.eff = 0.8 * 1.22 ~= 0.98
+        -- under Magnify, so the buttons effectively didn't scale down.
+        local mapScale = (WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.size) or 0.573
+        MMMFilterDropdown:SetScale(mapScale)
+        MMMFindDropdown:SetScale(mapScale)
+        if findPanel then findPanel:SetScale(mapScale) end
+        if hasPfQuest then
+            MMMFilterDropdown:SetPoint("TOPRIGHT", pfQuestMapDropdown, "BOTTOMRIGHT", 0, -2)
+        elseif hasQuestie or hasWDM then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 28, -44)
         else
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 28, -5)
         end
     elseif windowed then
-        MMMFilterDropdown:SetScale(0.8)
-        MMMFindDropdown:SetScale(0.8)
-        if findPanel then findPanel:SetScale(0.8) end
-        if hasQuestie or hasWDM then
+        local mapScale = (WORLDMAP_SETTINGS and WORLDMAP_SETTINGS.size) or 0.573
+        MMMFilterDropdown:SetScale(mapScale)
+        MMMFindDropdown:SetScale(mapScale)
+        if findPanel then findPanel:SetScale(mapScale) end
+        if hasPfQuest then
+            MMMFilterDropdown:SetPoint("TOPRIGHT", pfQuestMapDropdown, "BOTTOMRIGHT", 0, -2)
+        elseif hasQuestie or hasWDM then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", -19, -99)
         else
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", -19, -55)
@@ -771,7 +792,9 @@ local function PositionDropdowns()
         MMMFilterDropdown:SetScale(1)
         MMMFindDropdown:SetScale(1)
         if findPanel then findPanel:SetScale(1) end
-        if (hasMapster and hasQuestie) or hasWDM then
+        if hasPfQuest then
+            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 18, -50 - pfQuestOffset)
+        elseif (hasMapster and hasQuestie) or hasWDM then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 18, -79)
         elseif hasMapster then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapFrameCloseButton, "BOTTOMLEFT", 18, -50)
@@ -784,7 +807,9 @@ local function PositionDropdowns()
         MMMFilterDropdown:SetScale(1)
         MMMFindDropdown:SetScale(1)
         if findPanel then findPanel:SetScale(1) end
-        if (hasMapster and hasQuestie) or hasWDM then
+        if hasPfQuest then
+            MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", -18, -79 - pfQuestOffset)
+        elseif (hasMapster and hasQuestie) or hasWDM then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", -18, -111)
         elseif hasMapster then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", -18, -79)
@@ -797,7 +822,9 @@ local function PositionDropdowns()
         MMMFilterDropdown:SetScale(1)
         MMMFindDropdown:SetScale(1)
         if findPanel then findPanel:SetScale(1) end
-        if ((hasMapster or hasCartographer) and hasQuestie) or hasWDM then
+        if hasPfQuest then
+            MMMFilterDropdown:SetPoint("TOPRIGHT", pfQuestMapDropdown, "BOTTOMRIGHT", 0, -2)
+        elseif ((hasMapster or hasCartographer) and hasQuestie) or hasWDM then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", 2, -111)
         elseif (hasMapster or hasCartographer) then
             MMMFilterDropdown:SetPoint("TOPRIGHT", WorldMapPositioningGuide, "TOPRIGHT", 2, -79)
