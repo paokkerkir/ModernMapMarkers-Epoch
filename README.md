@@ -20,7 +20,7 @@ A lightweight addon that places markers on the world map for dungeons, raids, wo
 
 ## **Installation**
 
-Download as ZIP, extract to Interface\Addons and rename the folder to **ModernMapMarkers**.
+Download [latest release](https://github.com/paokkerkir/ModernMapMarkers-Epoch/releases/latest/download/ModernMapMarkers.zip), extract to Interface\Addons and rename the folder to **ModernMapMarkers**.
 
 ## **BUG REPORTING**
 
