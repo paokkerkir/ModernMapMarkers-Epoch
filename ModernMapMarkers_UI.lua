@@ -954,19 +954,26 @@ SlashCmdList["MMM"] = function(msg)
         end
         return
     end
-    if msg and msg ~= "" then return end
-    if MMMFilterDropdown then
-        if MMMFilterDropdown:IsShown() then MMMFilterDropdown:Hide()
-        else MMMFilterDropdown:Show() end
-    end
-    if MMMFindDropdown then
-        if MMMFindDropdown:IsShown() then
-            MMMFindDropdown:Hide()
-            if findPanel then findPanel:Hide() end
-        else
-            MMMFindDropdown:Show()
+    if msg and slower(msg) == "dropdowns" then
+        if MMMFilterDropdown then
+            if MMMFilterDropdown:IsShown() then MMMFilterDropdown:Hide()
+            else MMMFilterDropdown:Show() end
         end
+        if MMMFindDropdown then
+            if MMMFindDropdown:IsShown() then
+                MMMFindDropdown:Hide()
+                if findPanel then findPanel:Hide() end
+            else
+                MMMFindDropdown:Show()
+            end
+        end
+        return
     end
+
+    DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD700Modern Map Markers - Epoch|r")
+    DEFAULT_CHAT_FRAME:AddMessage("Available options:")
+    DEFAULT_CHAT_FRAME:AddMessage(" /mmm dropsdowns - enables/disables the world map dropdowns")
+    DEFAULT_CHAT_FRAME:AddMessage(" /mmm hints - enables/disables the marker click hints")
 end
 
 -- ============================================================

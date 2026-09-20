@@ -14,9 +14,11 @@ A lightweight addon that places markers on the world map for dungeons, raids, wo
 
  **ElvUI** support. Filter Marker & Find Marker menus are skinned to match ElvUI.
  
- Type /mmm to enable/disable the world map dropdown menus.
+ Type '/mmm' to display all available commands
 
- Type /mmm hints to enable/disable transport marker click hints.
+ Type '/mmm dropdowns' to enable/disable the world map dropdown menus.
+
+ Type '/mmm hints' to enable/disable marker click hints.
 
 ## **Installation**
 
