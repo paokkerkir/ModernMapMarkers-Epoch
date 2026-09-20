@@ -1,7 +1,7 @@
 -- ModernMapMarkers - MarkerData.lua
--- ============================================================
+-- =============================================================================
 -- Entry format (Project Epoch refactor)
--- ============================================================
+-- =============================================================================
 --
 --   { zoneName, x, y, name, type, info, atlasID [, slot8] }
 --
@@ -13,7 +13,8 @@
 --              may contain an embedded comment after \n
 --              example: "Gnomeregan\n|cFF808080(Workshop Entrance)|r"
 --              the comment is shown as a second line in the Find Marker panel
---   type     : "dungeon", "raid", "worldboss", "boat", "zepp", "tram", "portal" and "pvp"
+--   type     : "dungeon", "raid", "worldboss", "boat", "zepp", "tram", 
+--              "portal" and "pvp"
 --   info     : level range, examples: "52-60" or "80"
 --              faction string: "Alliance", "Horde" & "Neutral"
 --              nil for non-combat world bosses handled separately
@@ -28,8 +29,7 @@
 --                worldboss - AtlasLoot boss ID (same as raid). Falls back to
 --                            WORLD_BOSS_MAP in ModernMapMarkers.lua if nil.
 --   slot8    : optional, one of:
---
---              - Transport destination(s) â€” boat / zepp / tram / portal only:
+--              - Transport destination(s) - boat / zepp / tram / portal only:
 --                  single - "ZoneName"
 --                  dual   - {"ZoneName1", "ZoneName2"}
 --                           left-click navigates to dest[1]
@@ -39,34 +39,58 @@
 --                           the second element is the label shown in the menu
 --                           and in the transport hint line
 --
---              - "nopulse"  â€” used inside a single or dual dest sub-entry:
---                             {"ZoneName", "nopulse"}
---                             navigates normally but suppresses the return
---                             highlight pulse on the destination marker
---                             (used for portals that loop back to the same map)
+--              - nopulse  - used inside a single or dual dest sub-entry:
+--                           {"ZoneName", "nopulse"}
+--                           navigates normally but suppresses the return
+--                           highlight pulse on the destination marker
+--                           (used for portals that loop back to the same map)
 --
---              - "nolist"   â€” excludes the entry from the Find Marker panel
---                             while still showing it on the world map
---                             (use for duplicate/secondary entrance markers)
+--              - nolist   - excludes the entry from the Find Marker panel
+--                           while still showing it on the world map
+--                           (use for duplicate/secondary entrance markers)
 --
---              - "dropdown" â€” the marker comment is shown only in the
---                             Find Marker panel, not on the world map hover
---                             tooltip (use when the comment is context for
---                             navigation but not needed on the map pin)
+--              - dropdown - the marker comment is shown only in the
+--                           Find Marker panel, not on the world map hover
+--                           tooltip (use when the comment is context for
+--                           navigation but not needed on the map pin)
 --
--- ============================================================
+-- =============================================================================
 -- Scope
--- ============================================================
+-- =============================================================================
 --
 --   Only Kalimdor and Eastern Kingdoms zones are included. PE serves
 --   vanilla content, so Outland / Northrend / TBC-only zones (Azuremyst,
---   Eversong, Silvermoon, etc.) and WDM remappings were removed during
---   the 3.43-epoch refactor.
---   See docs/plans/2026-04-21-mmm-epoch-fix-design.md for details.
+--   Eversong, Silvermoon, etc.) were removed during the 3.43-epoch refactor.
+--
+-- =============================================================================
+-- Datasets
+-- =============================================================================
+--
+--   MMM_DefaultPoints             the main pin set. Zones are addressed by
+--                                 internal name, so it is independent of zone
+--                                 ordering and works unchanged with the WDM
+--                                 map patches installed.
+--   MMM_WDMDungeonEntrancePoints  extra pins for the dungeon maps that the WDM
+--                                 "Caverns and Mines" patch-N adds to the
+--                                 world map (Maraudon caves, Blackrock 
+--                                 Mountain, Scarlet Monastery entrance, ...),
+--                                 they are merged into the point index at load,
+--                                 these map names below only exist when 
+--                                 patch-N is installed, so without it these
+--                                 entries simply never match a map.
+--                                 https://github.com/Trimitor/WDM-patch
+--                                 https://github.com/Trimitor/WDM-addons
+--   MMM_WDMDungeonMaps            dungeon-map links. Maps an atlasID to the
+--                                 WDM "Classic and TBC dungeon maps" patch-M
+--                                 map of that dungeon. Clicking a dungeon/raid
+--                                 marker opens that map when the patch is
+--                                 installed, and falls back to Atlas when it
+--                                 is not.
+
 MMM_DefaultPoints = {
-    -- -------------------------------------------------------------------------
+    ----------------------------------------------------------------------------
     -- Kalimdor
-    -- -------------------------------------------------------------------------
+    ----------------------------------------------------------------------------
 
     -- Dungeons
     -- Dire Maul, Old Hillsbrad, The Black Morass, and The Culling of
@@ -125,9 +149,9 @@ MMM_DefaultPoints = {
 --    {"Darnassis", 0.405, 0.817, "Portal to Blasted Lands", "portal", "Alliance", nil, "BlastedLands"},
 --    {"Ogrimmar", 0.381, 0.857, "Portal to Blasted Lands", "portal", "Horde", nil, "BlastedLands"},
 --    {"ThunderBluff", 0.232, 0.135, "Portal to Blasted Lands\n|cFF808080(Inside The Pools of Vision)|r", "portal", "Horde", nil, "BlastedLands"},
-    -- -------------------------------------------------------------------------
+    ----------------------------------------------------------------------------
     -- Eastern Kingdoms
-    -- -------------------------------------------------------------------------
+    ----------------------------------------------------------------------------
 
     -- Dungeons
 	{"TolBarad", 0.483, 0.491, "Baradin Hold", "dungeon", "57-60", "BaradinHold"},
@@ -146,7 +170,7 @@ MMM_DefaultPoints = {
     {"Silverpine", 0.448, 0.678, "Shadowfang Keep", "dungeon", "22-30", "ShadowfangKeep"},
     {"Stormwind", 0.508, 0.67, "The Stockade", "dungeon", "24-31", "TheStockade"},
     {"EasternPlaguelands", 0.273, 0.122, "Stratholme", "dungeon", "58-60", "Stratholme"},
-    {"EasternPlaguelands", 0.437, 0.175, "Stratholme\n|cFF808080(Back Gate)|r", "dungeon", "58-60", "Stratholme"},
+    {"EasternPlaguelands", 0.437, 0.175, "Stratholme\n|cFF808080(Back Gate)|r", "dungeon", "58-60", "StratholmeBack"},
     {"SwampOfSorrows", 0.703, 0.55, "The Sunken Temple", "dungeon", "50-60", "TheSunkenTemple"},
     {"Badlands", 0.429, 0.13, "Uldaman", "dungeon", "41-51", "Uldaman"},
     {"Badlands", 0.657, 0.438, "Uldaman\n|cFF808080(Back Entrance)|r", "dungeon", "41-51", "Uldaman"},
@@ -195,5 +219,96 @@ MMM_DefaultPoints = {
 --    {"Ironforge", 0.272, 0.07, "Portal to Blasted Lands", "portal", "Alliance", nil, "BlastedLands"},
 }
 
--- WDM points intentionally omitted in the PE refactor (see design doc).
-MMM_WdmPoints = {}
+-- =============================================================================
+-- WDM dungeon entrance map points (patch-N)
+-- =============================================================================
+-- zoneName here is the internal map name from WDM-patch-N WorldMapArea.dbc
+-- (what GetMapInfo() returns while that micro-map is shown). All entries are
+-- "nolist" since the main-zone pin already provides the Find Marker entry.
+-- atlasID uses the same Atlas map keys as MMM_DefaultPoints.
+MMM_WDMDungeonEntrancePoints = {
+    ----------------------------------------------------------------------------
+    -- Kalimdor
+    ----------------------------------------------------------------------------
+
+    -- "Cleft of Shadow" map of Orgrimmar (the city map itself is "Ogrimmar").
+    {"Ogrimmar1_", 0.703, 0.492, "Ragefire Chasm", "dungeon", "13-18", "RagefireChasm", "nolist"},
+    {"WailingCavernsBarrens20_", 0.549, 0.669, "Wailing Caverns", "dungeon", "17-24", "WailingCaverns", "nolist"},
+    -- Maraudon has two outdoor cave maps, one portal on each.
+    {"MaraudonOutside22_", 0.581, 0.324, "Maraudon\n|cFF808080(The Wicked Grotto)|r", "dungeon", "46-55", "Maraudon", "nolist"},
+    {"MaraudonOutside21_", 0.788, 0.630, "Maraudon\n|cFF808080(Foulspore Cavern)|r", "dungeon", "46-55", "Maraudon", "nolist"},
+
+    ----------------------------------------------------------------------------
+    -- Eastern Kingdoms
+    ----------------------------------------------------------------------------
+
+    {"DeadminesWestfall17_", 0.251, 0.510, "The Deadmines", "dungeon", "17-24", "TheDeadmines", "nolist"},
+    {"GnomereganEntrance10_", 0.191, 0.856, "Gnomeregan", "dungeon", "29-38", "Gnomeregan", "nolist"},
+    {"GnomereganEntrance10_", 0.405, 0.207, "Gnomeregan\n|cFF808080(Workshop Entrance)|r", "dungeon", "29-38", "Gnomeregan", "nolist"},
+    {"ScarletMonasteryEntrance13_", 0.683, 0.211, "Scarlet Monastery - Graveyard", "dungeon", "26-36", "SMGraveyard", "nolist"},
+    {"ScarletMonasteryEntrance13_", 0.793, 0.603, "Scarlet Monastery - Library", "dungeon", "29-39", "SMLibrary", "nolist"},
+    {"ScarletMonasteryEntrance13_", 0.848, 0.437, "Scarlet Monastery - Armory", "dungeon", "32-42", "SMArmory", "nolist"},
+    {"ScarletMonasteryEntrance13_", 0.803, 0.271, "Scarlet Monastery - Cathedral", "dungeon", "35-45", "SMCathedral", "nolist"},
+    {"Uldaman18_", 0.368, 0.283, "Uldaman", "dungeon", "41-51", "Uldaman", "nolist"},
+    {"BlackrockMountain16_", 0.393, 0.181, "Blackrock Depths", "dungeon", "52-60", "BlackrockDepths", "nolist"},
+    {"BlackrockMountain14_", 0.817, 0.436, "Lower Blackrock Spire", "dungeon", "55-60", "BlackrockSpireLower", "nolist"},
+    {"BlackrockMountain14_", 0.790, 0.334, "Upper Blackrock Spire", "dungeon", "55-60", "BlackrockSpireUpper", "nolist"},
+    --    {"BlackrockMountain14_", 0.640, 0.715, "Blackwing Lair", "raid", "60", nil, "nolist"},  -- currently unavailable
+    {"BlackrockMountain16_", 0.538, 0.814, "Molten Core", "raid", "60", "MoltenCore", "nolist"},
+}
+
+-- =============================================================================
+-- WDM dungeon map links (patch-M)
+-- =============================================================================
+-- MMM_WDMDungeonMaps[atlasID] = { worldMapAreaID, internalMapName [, floor] }
+--
+-- Applies to every dungeon/raid marker with that atlasID: the main-zone
+-- markers in MMM_DefaultPoints and the dungeon map markers in
+-- MMM_WDMDungeonEntrancePoints.
+--
+--   worldMapAreaID   WorldMapArea.dbc ID from Trimitor/WDM-patch (Stable /
+--                    patch-M); passed to SetMapByID().
+--   internalMapName  what GetMapInfo() must return after SetMapByID(). If it
+--                    does not match, the patch is not installed (or the ID is
+--                    taken by another map on this client) and the click falls
+--                    back to Atlas instead.
+--   floor            dungeon floor (SetDungeonMapLevel) for dungeons that
+--                    share one map between several Atlas pages.
+MMM_WDMDungeonMaps = {
+    ----------------------------------------------------------------------------
+    -- Kalimdor
+    ----------------------------------------------------------------------------
+
+    RagefireChasm       = {680, "Ragefire"},
+    WailingCaverns      = {749, "WailingCaverns"},
+    BlackfathomDeeps    = {688, "BlackfathomDeeps"},
+    RazorfenKraul       = {761, "RazorfenKraul"},
+    RazorfenDowns       = {760, "RazorfenDowns"},
+    ZulFarrak           = {686, "ZulFarrak"},
+    Maraudon            = {750, "Maraudon"},
+    OnyxiaTrash         = {718, "OnyxiasLair"},
+
+    ----------------------------------------------------------------------------
+    -- Eastern Kingdoms
+    ----------------------------------------------------------------------------
+
+    TheDeadmines        = {756, "TheDeadmines"},
+    ShadowfangKeep      = {764, "ShadowfangKeep"},
+    TheStockade         = {690, "TheStockade"},
+    Gnomeregan          = {691, "Gnomeregan"},
+    SMGraveyard         = {762, "ScarletMonastery", 1},
+    SMLibrary           = {762, "ScarletMonastery", 2},
+    SMArmory            = {762, "ScarletMonastery", 3},
+    SMCathedral         = {762, "ScarletMonastery", 4},
+    GlittermurkMines    = {9000, "GlittermurkMines"},
+    Uldaman             = {692, "Uldaman"},
+    TheSunkenTemple     = {687, "TheTempleOfAtalHakkar"},
+    Scholomance         = {763, "Scholomance"},
+    Stratholme          = {765, "Stratholme"}, -- live side
+    StratholmeBack      = {765, "Stratholme", 2}, -- undead side
+    BlackrockDepths     = {704, "BlackrockDepths"},
+    BlackrockSpireLower = {721, "BlackrockSpire", 1},
+    BlackrockSpireUpper = {721, "BlackrockSpire", 4},
+    MoltenCore          = {696, "MoltenCore"},
+    BaradinHold         = {9001, "BaradinHold"},
+}

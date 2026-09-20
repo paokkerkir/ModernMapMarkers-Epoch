@@ -12,10 +12,12 @@ A lightweight addon that places markers on the world map for dungeons, raids, wo
  
  **[Atlas](https://github.com/Raynbock/Atlas-Project-Epoch)** , [AtlasLoot](https://github.com/reneas/AtlasLootProjectEpoch) & **[AtlasQuest](https://github.com/Rofos2011/AtlasQuest)** for Project Epoch support. Click any dungeon, raid and world boss markers to open up the corresponding Atlas page.
 
- **ElvUI** support. Filter Marker & Find Marker menus are skinned to match ElvUI.
- 
- Type '/mmm' to display all available commands
+ **[WDM-patch](https://github.com/Trimitor/WDM-patch)** & **[WDM-addons](https://github.com/Trimitor/WDM-addons)** support. With the Classic and TBC dungeon maps patch installed, clicking a dungeon or raid marker opens that dungeon's map (Blackrock Spire and Scarlet Monastery jump to the right wing/floor). Without the patch, the click opens the Atlas page as before. With the Caverns and Mines patch, entrance markers are also placed on its dungeon entrance maps (Maraudon caves, Blackrock Mountain, Scarlet Monastery entrance, Ragefire Chasm, Wailing Caverns, Deadmines, Gnomeregan and Uldaman entrances) and behave the same way. Zones are matched by map name, so the main markers work with or without WDM.
 
+ **ElvUI** support. Filter Marker & Find Marker menus are skinned to match ElvUI.
+
+ Type '/mmm' to display all available commands
+ 
  Type '/mmm dropdowns' to enable/disable the world map dropdown menus.
 
  Type '/mmm hints' to enable/disable marker click hints.

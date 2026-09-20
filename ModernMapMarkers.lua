@@ -120,6 +120,7 @@ local activeMarkersCount = 0
 local initialized        = false
 local zoneNavBuilt       = false
 local buildingZoneNav    = false
+local probingWdmMap      = false     -- suppresses redraws while SetMapByID is in flight
 local lastZoneName       = nil
 local lastUpdateTime     = 0
 local frame              = CreateFrame("Frame")
@@ -235,11 +236,11 @@ end
 -- Point index
 -- ============================================================
 
-local function BuildPointIndex()
-    -- Entry format (flat list): { zoneName, x, y, name, type, info, atlasID [, slot8] }
-    -- pointsByMap[zoneName] = { entry, entry, ... }  (entries stored verbatim)
-    for i = 1, #MMM_DefaultPoints do
-        local p    = MMM_DefaultPoints[i]
+local pointIndexBuilt = false
+
+local function IndexPoints(list)
+    for i = 1, #list do
+        local p    = list[i]
         local zone = p[1]
         local bucket = pointsByMap[zone]
         if not bucket then
@@ -247,6 +248,24 @@ local function BuildPointIndex()
             pointsByMap[zone] = bucket
         end
         tinsert(bucket, p)
+    end
+end
+
+local function BuildPointIndex()
+    -- Entry format (flat list): { zoneName, x, y, name, type, info, atlasID [, slot8] }
+    -- pointsByMap[zoneName] = { entry, entry, ... }  (entries stored verbatim)
+    if pointIndexBuilt then return end
+    pointIndexBuilt = true
+
+    IndexPoints(MMM_DefaultPoints)
+
+    -- WDM "Caverns and Mines" micro-map pins. Zones are keyed by internal map
+    -- name, so nothing here depends on WDM's shifted zone indices. The names
+    -- only exist when the WDM patch is installed; without it these buckets
+    -- are never looked up. They are "nolist" entries, so the Find Marker
+    -- panel (GetFlatData) is unaffected.
+    if MMM_WDMDungeonEntrancePoints then
+        IndexPoints(MMM_WDMDungeonEntrancePoints)
     end
 end
 
@@ -309,6 +328,7 @@ local function ReturnMarkerToPool(marker)
     marker.markerHint      = nil
     marker.markerKind      = nil
     marker.atlasID         = nil
+    marker.wdmMap          = nil
     marker.transportDest   = nil
     marker.isDualDest      = nil
     marker.isMultiDest     = nil
@@ -510,10 +530,57 @@ local function ResolveAtlasID(atlasID, continent)
     return nil, nil
 end
 
+-- Opens a WDM dungeon map (Classic and TBC dungeon maps patch) in the world
+-- map. link = MMM_WDMDungeonMaps[atlasID] = { worldMapAreaID, mapName [, floor] }.
+-- Returns true if the map was opened. Returns false, leaving the map view as
+-- it was, when the patch is not installed: SetMapByID() is then a no-op (or
+-- lands on an unrelated map), which the GetMapInfo() name check detects.
+local function OpenWdmDungeonMap(link)
+    if not (link and SetMapByID) then return false end
+    local mapID, mapName, floor = link[1], link[2], link[3]
+
+    local savedC = GetCurrentMapContinent()
+    local savedZ = GetCurrentMapZone()
+
+    probingWdmMap = true
+    local called = pcall(SetMapByID, mapID)
+    local opened = called and GetMapInfo() == mapName
+
+    if opened then
+        if floor and GetNumDungeonMapLevels and SetDungeonMapLevel
+           and GetNumDungeonMapLevels() >= floor then
+            SetDungeonMapLevel(floor)
+        end
+    elseif called and savedC and savedC > 0 then
+        -- Landed on some other map: put the view back.
+        if savedZ and savedZ > 0 then
+            SetMapZoom(savedC, savedZ)
+        else
+            SetMapZoom(savedC)
+        end
+    end
+    probingWdmMap = false
+
+    if opened then
+        -- Markers do not apply to instance maps; let UpdateMarkers clear them.
+        MMM.ForceRedraw()
+        MMM.UpdateMarkers()
+    end
+    return opened
+end
+
 local function OnAtlasClick()
     if not this.atlasID then return end
     local atlasID = this.atlasID
     local kind    = this.markerKind
+
+    -- WDM patch installed: the dungeon's own map takes priority.
+    -- Otherwise fall through to the Atlas handling below.
+    if (kind == "dungeon" or kind == "raid") and this.wdmMap
+       and OpenWdmDungeonMap(this.wdmMap) then
+        PlaySoundFile(SOUND_CLICK)
+        return
+    end
 
     if kind == "dungeon" then
         -- Dungeons: open the Atlas instance map as before.
@@ -767,6 +834,9 @@ local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlas
     pin.markerInfo      = tooltipInfo
     pin.markerKind      = kind
     pin.atlasID         = atlasID
+    pin.wdmMap          = (kind == "dungeon" or kind == "raid") and atlasID
+                          and MMM_WDMDungeonMaps and MMM_WDMDungeonMaps[atlasID]
+                          or nil
     pin.transportDest   = dest
     pin.isDualDest      = isDual
     pin.isMultiDest     = isMulti
@@ -838,7 +908,7 @@ end
 
 local function UpdateMarkers()
     if not initialized then return end
-    if buildingZoneNav then return end
+    if buildingZoneNav or probingWdmMap then return end
     if not ModernMapMarkersDB.showMarkers or not WorldMapFrame:IsVisible() then return end
 
     -- Resolve the current zone by internal name. GetMapInfo() is authoritative
