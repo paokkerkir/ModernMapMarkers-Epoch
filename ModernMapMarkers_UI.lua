@@ -972,7 +972,7 @@ SlashCmdList["MMM"] = function(msg)
 
     DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD700Modern Map Markers - Epoch|r")
     DEFAULT_CHAT_FRAME:AddMessage("Available options:")
-    DEFAULT_CHAT_FRAME:AddMessage(" /mmm dropsdowns - enables/disables the world map dropdowns")
+    DEFAULT_CHAT_FRAME:AddMessage(" /mmm dropdowns - enables/disables the world map dropdowns")
     DEFAULT_CHAT_FRAME:AddMessage(" /mmm hints - enables/disables the marker click hints")
 end
 
