@@ -167,12 +167,14 @@ local MENU_BUTTON_HEIGHT = 22
 local MENU_BUTTON_WIDTH  = 160
 local MENU_PADDING       = 8
 
-function MMM.ShowDestMenu(pin)
+-- destList (optional): { {zoneName, label}, ... } to show instead of the
+-- pin's own transport destinations (used for dungeon entrance maps).
+function MMM.ShowDestMenu(pin, destList)
     if not destMenu then CreateDestMenu() end
     if destMenuPin == pin and destMenu:IsShown() then HideDestMenu(); return end
 
     destMenuPin = pin
-    local dest  = pin.transportDest
+    local dest  = destList or pin.transportDest
     local count = #dest
 
     for i = 1, count do
@@ -277,8 +279,6 @@ function InitFilterDropdown()
     addToggle("Trams",        "showTrams")
     addToggle("Portals",      "showPortals")
     addToggle("Flight Paths", "showFlightPaths")
-    addHeader("Vendors")
-    addToggle("PvP",          "showPvP")
     addHeader("Transport Faction")
     addFactionRadio("Show All",             "transportFaction", "all")
     addFactionRadio("|cFF2592C5Alliance|r", "transportFaction", "Alliance")
@@ -287,6 +287,12 @@ function InitFilterDropdown()
     addFactionRadio("Show All",             "portalFaction", "all")
     addFactionRadio("|cFF2592C5Alliance|r", "portalFaction", "Alliance")
     addFactionRadio("|cFFE32A19Horde|r",    "portalFaction", "Horde")
+    addHeader("Vendors")
+    addToggle("PvP",          "showPvP")
+    addHeader("PvP Vendors")
+    addFactionRadio("Show All",             "pvpFaction", "all")
+    addFactionRadio("|cFF2592C5Alliance|r", "pvpFaction", "Alliance")
+    addFactionRadio("|cFFE32A19Horde|r",    "pvpFaction", "Horde")
 end
 
 -- ============================================================
@@ -950,19 +956,26 @@ SlashCmdList["MMM"] = function(msg)
         end
         return
     end
-    if msg and msg ~= "" then return end
-    if MMMFilterDropdown then
-        if MMMFilterDropdown:IsShown() then MMMFilterDropdown:Hide()
-        else MMMFilterDropdown:Show() end
-    end
-    if MMMFindDropdown then
-        if MMMFindDropdown:IsShown() then
-            MMMFindDropdown:Hide()
-            if findPanel then findPanel:Hide() end
-        else
-            MMMFindDropdown:Show()
+    if msg and slower(msg) == "dropdowns" then
+        if MMMFilterDropdown then
+            if MMMFilterDropdown:IsShown() then MMMFilterDropdown:Hide()
+            else MMMFilterDropdown:Show() end
         end
+        if MMMFindDropdown then
+            if MMMFindDropdown:IsShown() then
+                MMMFindDropdown:Hide()
+                if findPanel then findPanel:Hide() end
+            else
+                MMMFindDropdown:Show()
+            end
+        end
+        return
     end
+
+    DEFAULT_CHAT_FRAME:AddMessage("|cFFFFD700Modern Map Markers - Epoch|r")
+    DEFAULT_CHAT_FRAME:AddMessage("Available options:")
+    DEFAULT_CHAT_FRAME:AddMessage(" /mmm dropdowns - enables/disables the world map dropdowns")
+    DEFAULT_CHAT_FRAME:AddMessage(" /mmm hints - enables/disables the marker click hints")
 end
 
 -- ============================================================

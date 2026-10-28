@@ -112,6 +112,7 @@ local pcall       = pcall
 -- ============================================================
 
 local pointsByMap        = {}        -- internalZoneName -> { entry, entry, ... }
+local wdmEntranceMaps    = {}        -- internal names of the WDM entrance maps (patch-N)
 local zoneNameToMap      = {}        -- internalZoneName -> {continent, zoneIdx}
 local markerPool         = {}
 local markerPoolCount    = 0
@@ -120,6 +121,7 @@ local activeMarkersCount = 0
 local initialized        = false
 local zoneNavBuilt       = false
 local buildingZoneNav    = false
+local probingWdmMap      = false     -- suppresses redraws while SetMapByID is in flight
 local lastZoneName       = nil
 local lastUpdateTime     = 0
 local frame              = CreateFrame("Frame")
@@ -235,11 +237,11 @@ end
 -- Point index
 -- ============================================================
 
-local function BuildPointIndex()
-    -- Entry format (flat list): { zoneName, x, y, name, type, info, atlasID [, slot8] }
-    -- pointsByMap[zoneName] = { entry, entry, ... }  (entries stored verbatim)
-    for i = 1, #MMM_DefaultPoints do
-        local p    = MMM_DefaultPoints[i]
+local pointIndexBuilt = false
+
+local function IndexPoints(list)
+    for i = 1, #list do
+        local p    = list[i]
         local zone = p[1]
         local bucket = pointsByMap[zone]
         if not bucket then
@@ -247,6 +249,27 @@ local function BuildPointIndex()
             pointsByMap[zone] = bucket
         end
         tinsert(bucket, p)
+    end
+end
+
+local function BuildPointIndex()
+    -- Entry format (flat list): { zoneName, x, y, name, type, info, atlasID [, slot8] }
+    -- pointsByMap[zoneName] = { entry, entry, ... }  (entries stored verbatim)
+    if pointIndexBuilt then return end
+    pointIndexBuilt = true
+
+    IndexPoints(MMM_DefaultPoints)
+
+    -- WDM "Caverns and Mines" micro-map pins. Zones are keyed by internal map
+    -- name, so nothing here depends on WDM's shifted zone indices. The names
+    -- only exist when the WDM patch is installed; without it these buckets
+    -- are never looked up. They are "nolist" entries, so the Find Marker
+    -- panel (GetFlatData) is unaffected.
+    if MMM_WDMDungeonEntrancePoints then
+        IndexPoints(MMM_WDMDungeonEntrancePoints)
+        for i = 1, #MMM_WDMDungeonEntrancePoints do
+            wdmEntranceMaps[MMM_WDMDungeonEntrancePoints[i][1]] = true
+        end
     end
 end
 
@@ -309,6 +332,8 @@ local function ReturnMarkerToPool(marker)
     marker.markerHint      = nil
     marker.markerKind      = nil
     marker.atlasID         = nil
+    marker.wdmMap          = nil
+    marker.entranceKey     = nil
     marker.transportDest   = nil
     marker.isDualDest      = nil
     marker.isMultiDest     = nil
@@ -510,10 +535,60 @@ local function ResolveAtlasID(atlasID, continent)
     return nil, nil
 end
 
+-- Opens a WDM dungeon map (Classic and TBC dungeon maps patch) in the world
+-- map. link = MMM_WDMDungeonMaps[atlasID] = { worldMapAreaID, mapName [, floor] }.
+-- Returns true if the map was opened. Returns false, leaving the map view as
+-- it was, when the patch is not installed: SetMapByID() is then a no-op (or
+-- lands on an unrelated map), which the GetMapInfo() name check detects.
+local function OpenWdmDungeonMap(link)
+    if not (link and SetMapByID) then return false end
+    local mapID, mapName, floor = link[1], link[2], link[3]
+
+    local savedC = GetCurrentMapContinent()
+    local savedZ = GetCurrentMapZone()
+
+    probingWdmMap = true
+    local called = pcall(SetMapByID, mapID)
+    local opened = called and GetMapInfo() == mapName
+
+    if opened then
+        -- Always select a floor: the client may keep the floor last viewed
+        -- on this map (e.g. Stratholme back gate, then main gate).
+        floor = floor or 1
+        if GetNumDungeonMapLevels and SetDungeonMapLevel
+           and GetNumDungeonMapLevels() >= floor then
+            SetDungeonMapLevel(floor)
+        end
+    elseif called and savedC and savedC > 0 then
+        -- Landed on some other map: put the view back.
+        if savedZ and savedZ > 0 then
+            SetMapZoom(savedC, savedZ)
+        else
+            SetMapZoom(savedC)
+        end
+    end
+    probingWdmMap = false
+
+    if opened then
+        -- Markers do not apply to instance maps; let UpdateMarkers clear them.
+        MMM.ForceRedraw()
+        MMM.UpdateMarkers()
+    end
+    return opened
+end
+
 local function OnAtlasClick()
     if not this.atlasID then return end
     local atlasID = this.atlasID
     local kind    = this.markerKind
+
+    -- WDM patch installed: the dungeon's own map takes priority.
+    -- Otherwise fall through to the Atlas handling below.
+    if (kind == "dungeon" or kind == "raid") and this.wdmMap
+       and OpenWdmDungeonMap(this.wdmMap) then
+        PlaySoundFile(SOUND_CLICK)
+        return
+    end
 
     if kind == "dungeon" then
         -- Dungeons: open the Atlas instance map as before.
@@ -602,6 +677,91 @@ local function OnAtlasClick()
             end
         end
     end
+end
+
+-- Opens an Atlas page by map key (used for entrance pages). Returns true if
+-- Atlas is loaded and has that map. Same open sequence as OnAtlasClick.
+local function OpenAtlasMap(atlasKey)
+    if not (atlasKey and ATLAS_DROPDOWNS and AtlasFrame and AtlasOptions) then
+        return false
+    end
+    if not ResolveAtlasID(atlasKey) then return false end
+
+    PlaySoundFile(SOUND_CLICK)
+    if WorldMapFrame:IsVisible() and IsWorldMapFullscreen() then
+        HideUIPanel(WorldMapFrame)
+    end
+    WithContinentSort(function()
+        local atlasType, atlasZone = ResolveAtlasID(atlasKey)
+        if not atlasType then return end
+        AtlasOptions.AtlasType = atlasType
+        AtlasOptions.AtlasZone = atlasZone
+        Atlas_Refresh()
+        AtlasFrame:SetFrameStrata("FULLSCREEN")
+        local savedAutoSelect = AtlasOptions.AtlasAutoSelect
+        AtlasOptions.AtlasAutoSelect = false
+        AtlasFrame:Show()
+        AtlasOptions.AtlasAutoSelect = savedAutoSelect
+        mmmAtlasType = atlasType
+        mmmAtlasZone = atlasZone
+        mmmZoneID = ATLAS_DROPDOWNS[atlasType] and ATLAS_DROPDOWNS[atlasType][atlasZone]
+    end)
+    return true
+end
+
+-- Entrance options of a dungeon (MMM_DungeonEntranceMaps[key]).
+-- Returns wdmList, atlasKey - either may be nil:
+--   wdmList  { {mapName, label}, ... } of WDM entrance maps this client has
+--            (WDM patch-N adds them as zones of the continent, so they show
+--            up in zoneNameToMap), or nil.
+--   atlasKey the Atlas entrance page, only if Atlas is loaded and has it.
+-- buildNav: build the zone map first if needed. Only safe from a click, never
+-- while markers are being drawn (BuildZoneNav moves the world map).
+local function GetEntranceOptions(key, buildNav)
+    local def = key and MMM_DungeonEntranceMaps and MMM_DungeonEntranceMaps[key]
+    if not def then return nil, nil end
+
+    if buildNav and not zoneNavBuilt then BuildZoneNav() end
+
+    local wdmList
+    if def.wdm and zoneNavBuilt then
+        local entries = def.wdm
+        if type(entries) == "string" then entries = { { entries } } end
+        for i = 1, #entries do
+            if zoneNameToMap[entries[i][1]] then
+                wdmList = wdmList or {}
+                tinsert(wdmList, entries[i])
+            end
+        end
+    end
+
+    local atlasKey
+    if def.atlas and ATLAS_DROPDOWNS and AtlasFrame and AtlasOptions
+       and ResolveAtlasID(def.atlas) then
+        atlasKey = def.atlas
+    end
+
+    return wdmList, atlasKey
+end
+
+-- Right-click on a dungeon/raid marker: open its entrance map.
+-- WDM entrance map first (a popup when there are several), then the Atlas
+-- entrance page. With neither available it acts like a left-click.
+local function OnEntranceClick()
+    local wdmList, atlasKey = GetEntranceOptions(this.entranceKey, true)
+
+    if wdmList then
+        if #wdmList == 1 then
+            MMM.NavigateToTransportDest(wdmList[1][1], GetMapInfo())
+        else
+            MMM.ShowDestMenu(this, wdmList)
+        end
+        return
+    end
+
+    if atlasKey and OpenAtlasMap(atlasKey) then return end
+
+    OnAtlasClick()
 end
 
 local function StartPinHighlight(pin)
@@ -716,7 +876,7 @@ end
 -- Pin creation
 -- ============================================================
 
-local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlasID, kind, dest)
+local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlasID, kind, dest, wdmKey, isEntranceMap)
     -- "dropdown" sentinel: comment shown only in Find Marker, not on the map.
     local displayName = nil
     if dest == "dropdown" then
@@ -767,6 +927,10 @@ local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlas
     pin.markerInfo      = tooltipInfo
     pin.markerKind      = kind
     pin.atlasID         = atlasID
+    wdmKey = wdmKey or atlasID
+    pin.wdmMap          = (kind == "dungeon" or kind == "raid") and wdmKey
+                          and MMM_WDMDungeonMaps and MMM_WDMDungeonMaps[wdmKey]
+                          or nil
     pin.transportDest   = dest
     pin.isDualDest      = isDual
     pin.isMultiDest     = isMulti
@@ -787,6 +951,18 @@ local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlas
                       .. "   |cFFFFD700Right-click:|r " .. b
     end
 
+    -- Dungeon/raid markers on the world map: left-click opens the dungeon
+    -- map, right-click the entrance map. Hint only if an entrance map exists.
+    -- (Markers on the WDM entrance maps themselves only have the left-click.)
+    if (kind == "dungeon" or kind == "raid") and not isEntranceMap and wdmKey then
+        local wdmList, atlasKey = GetEntranceOptions(wdmKey)
+        if wdmList or atlasKey then
+            pin.entranceKey = wdmKey
+            pin.markerHint  = "|cFFFFD700Left-click:|r Dungeon map   "
+                           .. "|cFFFFD700Right-click:|r Entrance map"
+        end
+    end
+
     pin:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
     pin:SetScript("OnEnter", function()
@@ -804,14 +980,18 @@ local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlas
         this.highlight:SetAlpha(0)
     end)
     pin:SetScript("OnClick", function()
-        if this.markerKind == "worldboss" then
+        if this.markerKind == "worldboss" or this.markerKind == "pvp" then
             OnWorldBossClick()
         elseif this.markerKind == "boat" or this.markerKind == "zepp"
             or this.markerKind == "tram" or this.markerKind == "portal"
-            or this.markerKind == "pvp" or this.markerKind == "flightpath" then
+            or this.markerKind == "flightpath" then
             OnTransportClick()
         elseif this.atlasID then
-            OnAtlasClick()
+            if arg1 == "RightButton" and this.entranceKey then
+                OnEntranceClick()
+            else
+                OnAtlasClick()
+            end
         end
     end)
     pin:Show()
@@ -838,7 +1018,7 @@ end
 
 local function UpdateMarkers()
     if not initialized then return end
-    if buildingZoneNav then return end
+    if buildingZoneNav or probingWdmMap then return end
     if not ModernMapMarkersDB.showMarkers or not WorldMapFrame:IsVisible() then return end
 
     -- Resolve the current zone by internal name. GetMapInfo() is authoritative
@@ -889,6 +1069,7 @@ local function UpdateMarkers()
 
     local relevantPoints = pointsByMap[currentName]
     if not relevantPoints then return end
+    local onEntranceMap = wdmEntranceMaps[currentName]
 
     local db               = ModernMapMarkersDB
     local showDungeons     = db.showDungeons
@@ -899,6 +1080,7 @@ local function UpdateMarkers()
     local showTrams        = db.showTrams
     local showPortals      = db.showPortals
     local showPvP          = db.showPvP
+    local pvpFaction       = db.pvpFaction
     local showFlightPaths  = db.showFlightPaths
     local transportFaction = db.transportFaction
     local portalFaction    = db.portalFaction
@@ -958,8 +1140,8 @@ local function UpdateMarkers()
             texture = texPortal
         elseif kind == "pvp" then
             shouldDisplay = showPvP
-            if shouldDisplay and transportFaction ~= "all" then
-                shouldDisplay = (info == transportFaction) or (info == "Neutral")
+            if shouldDisplay and pvpFaction ~= "all" then
+                shouldDisplay = (info == pvpFaction) or (info == "Neutral")
             end
             texture = texPvp
         elseif kind == "flightpath" then
@@ -977,7 +1159,7 @@ local function UpdateMarkers()
             local pin = CreateMapPin(
                 data[2] * mapWidth, data[3] * mapHeight,
                 size, texture,
-                data[4], info, data[7], kind, data[8])
+                data[4], info, data[7], kind, data[8], data[9], onEntranceMap)
             activeMarkersCount = activeMarkersCount + 1
             activeMarkers[activeMarkersCount] = pin
         end
@@ -1047,6 +1229,7 @@ local DEFAULTS = {
     showTrams          = true,
     showPortals        = true,
     showPvP            = true,
+    pvpFaction         = "all",
     showFlightPaths    = true,
     transportFaction   = "all",
     portalFaction      = "all",

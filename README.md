@@ -10,13 +10,19 @@ A lightweight addon that places markers on the world map for dungeons, raids, wo
 
  Transport navigation. click any transport marker (boat, zeppelin, tram, portal) to instantly change the map to its destination. Dual destination markers show a left/right click hint for each route. Markers with three or more destinations show a dropdown menu listing all destinations.
  
- **[Atlas](https://github.com/Raynbock/Atlas-Project-Epoch)** , [AtlasLoot](https://github.com/reneas/AtlasLootProjectEpoch) & **[AtlasQuest](https://github.com/Rofos2011/AtlasQuest)** for Project Epoch support. Click any dungeon, raid and world boss markers to open up the corresponding Atlas page.
+ **[Atlas](https://github.com/Raynbock/Atlas-Project-Epoch)** , **[AtlasLoot](https://github.com/reneas/AtlasLootProjectEpoch)** & **[AtlasQuest](https://github.com/Rofos2011/AtlasQuest)** for Project Epoch support. Click any dungeon, raid and world boss markers to open up the corresponding Atlas page if available or AtlasLoot.
+
+ Dungeon & raid markers. **Left-click** opens the dungeon map, **right-click** opens the entrance map, with a hint on the marker like the transports have.
+
+ **[WDM-patch](https://github.com/Trimitor/WDM-patch)** & **[WDM-addons](https://github.com/Trimitor/WDM-addons)** support. With patch-M installed (Epoch Reborn already provides Patch-M) clicking a dungeon or raid marker opens that dungeon's map on the World Map window. With patch-N installed, righ-clicking a dungeon or raid marker opens the dungeon's entrance map on the World Map window, and this map also contains a additional dungeon marker at the actual entrance of the dungeon. Dungeons with two entrance maps (Maraudon) show a small menu to choose which one to open. Dungeons without an entrance map just open the dungeon map on either click. Without these patch's, the click opens the Atlas page instead.
 
  **ElvUI** support. Filter Marker & Find Marker menus are skinned to match ElvUI.
- 
- Type /mmm to enable/disable the world map dropdown menus.
 
- Type /mmm hints to enable/disable transport marker click hints.
+ Type '/mmm' to display all available commands
+ 
+ Type '/mmm dropdowns' to enable/disable the world map dropdown menus.
+
+ Type '/mmm hints' to enable/disable marker click hints.
 
 ## **Installation**
 
