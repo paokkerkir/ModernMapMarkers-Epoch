@@ -3,7 +3,7 @@
 -- Entry format (Project Epoch refactor)
 -- =============================================================================
 --
---   { zoneName, x, y, name, type, info, atlasID [, slot8] }
+--   { zoneName, x, y, name, type, info, atlasID [, slot8 [, wdmKey]] }
 --
 --   zoneName : PE internal zone name string (from WorldMapArea.dbc).
 --              Preserves PE's spelling, including typos:
@@ -54,6 +54,13 @@
 --                           tooltip (use when the comment is context for
 --                           navigation but not needed on the map pin)
 --
+--   wdmKey   : optional key into MMM_WDMDungeonMaps and MMM_DungeonEntranceMaps,
+--              used when the WDM dungeon map or the entrance map of this marker
+--              differs from the one its atlasID gives (e.g. the Stratholme back
+--              gate opens the same Atlas page as the main gate but a different
+--              WDM floor; the Uldaman back entrance has no entrance map).
+--              Needs slot8 (nil or "nolist"/"dropdown") before it.
+--
 -- =============================================================================
 -- Scope
 -- =============================================================================
@@ -82,10 +89,15 @@
 --                                 https://github.com/Trimitor/WDM-addons
 --   MMM_WDMDungeonMaps            dungeon-map links. Maps an atlasID to the
 --                                 WDM "Classic and TBC dungeon maps" patch-M
---                                 map of that dungeon. Clicking a dungeon/raid
---                                 marker opens that map when the patch is
---                                 installed, and falls back to Atlas when it
---                                 is not.
+--                                 map of that dungeon. Left-clicking a
+--                                 dungeon/raid marker opens that map when the
+--                                 patch is installed, and falls back to Atlas
+--                                 when it is not.
+--   MMM_DungeonEntranceMaps       entrance-map links. Maps an atlasID to the
+--                                 WDM patch-N entrance map(s) and/or the Atlas
+--                                 entrance page of that dungeon. Right-clicking
+--                                 a dungeon/raid marker opens the WDM entrance
+--                                 map when installed, else the Atlas one.
 
 MMM_DefaultPoints = {
     ----------------------------------------------------------------------------
@@ -93,10 +105,7 @@ MMM_DefaultPoints = {
     ----------------------------------------------------------------------------
 
     -- Dungeons
-    -- Dire Maul, Old Hillsbrad, The Black Morass, and The Culling of
-    -- Stratholme are NOT in PE Atlas (no AtlasMaps entry) so atlasID=nil;
-    -- they still show as pins but clicking them won't open Atlas.
-    {"Ashenvale", 0.123, 0.128, "Blackfathom Deeps", "dungeon", "24-32", "BlackfathomDeeps"},
+    {"Ashenvale", 0.142, 0.139, "Blackfathom Deeps", "dungeon", "24-32", "BlackfathomDeeps"},
 --    {"Feralas", 0.648, 0.303, "Dire Maul - East", "dungeon", "55-58", nil},
 --    {"Feralas", 0.771, 0.369, "Dire Maul - East\n|cFF808080(The Hidden Reach)|r", "dungeon", "55-58", nil},
 --    {"Feralas", 0.671, 0.34, "Dire Maul - East\n|cFF808080(Side Entrance)|r", "dungeon", "55-58", nil},
@@ -144,11 +153,11 @@ MMM_DefaultPoints = {
     {"Barrens", 0.467, 0.085, "PvP Vendors - 15 to 55 Gear & Supplies", "pvp", "Horde", "PVPMENU"},
     {"Ashenvale", 0.616, 0.841, "PvP Vendors - 15 to 55 Gear & Supplies", "pvp", "Alliance", "PVPMENU"},
 
-
     -- Portals
 --    {"Darnassis", 0.405, 0.817, "Portal to Blasted Lands", "portal", "Alliance", nil, "BlastedLands"},
 --    {"Ogrimmar", 0.381, 0.857, "Portal to Blasted Lands", "portal", "Horde", nil, "BlastedLands"},
 --    {"ThunderBluff", 0.232, 0.135, "Portal to Blasted Lands\n|cFF808080(Inside The Pools of Vision)|r", "portal", "Horde", nil, "BlastedLands"},
+
     ----------------------------------------------------------------------------
     -- Eastern Kingdoms
     ----------------------------------------------------------------------------
@@ -159,7 +168,7 @@ MMM_DefaultPoints = {
     {"BurningSteppes", 0.328, 0.365, "Blackrock Depths\n|cFF808080(Burning Steppes)|r", "dungeon", "52-60", "BlackrockDepths", "dropdown"},
     {"Westfall", 0.423, 0.726, "The Deadmines", "dungeon", "17-24", "TheDeadmines"},
     {"DunMorogh", 0.178, 0.392, "Gnomeregan", "dungeon", "29-38", "Gnomeregan"},
-    {"DunMorogh", 0.216, 0.30, "Gnomeregan\n|cFF808080(Workshop Entrance)|r", "dungeon", "29-38", "Gnomeregan"},
+    {"DunMorogh", 0.216, 0.30, "Gnomeregan\n|cFF808080(Workshop Entrance)|r", "dungeon", "29-38", "Gnomeregan", nil, "GnomereganWorkshop"},
     {"BurningSteppes", 0.32, 0.39, "Lower Blackrock Spire\n|cFF808080(Burning Steppes)|r", "dungeon", "55-60", "BlackrockSpireLower", "dropdown"},
     {"SearingGorge", 0.379, 0.858, "Lower Blackrock Spire\n|cFF808080(Searing Gorge)|r", "dungeon", "55-60", "BlackrockSpireLower", "dropdown"},
     {"Tirisfal", 0.87, 0.325, "Scarlet Monastery - Armory", "dungeon", "32-42", "SMArmory"},
@@ -170,10 +179,10 @@ MMM_DefaultPoints = {
     {"Silverpine", 0.448, 0.678, "Shadowfang Keep", "dungeon", "22-30", "ShadowfangKeep"},
     {"Stormwind", 0.508, 0.67, "The Stockade", "dungeon", "24-31", "TheStockade"},
     {"EasternPlaguelands", 0.273, 0.122, "Stratholme", "dungeon", "58-60", "Stratholme"},
-    {"EasternPlaguelands", 0.437, 0.175, "Stratholme\n|cFF808080(Back Gate)|r", "dungeon", "58-60", "StratholmeBack"},
+    {"EasternPlaguelands", 0.437, 0.175, "Stratholme\n|cFF808080(Back Gate)|r", "dungeon", "58-60", "Stratholme", nil, "StratholmeBack"},
     {"SwampOfSorrows", 0.703, 0.55, "The Sunken Temple", "dungeon", "50-60", "TheSunkenTemple"},
     {"Badlands", 0.429, 0.13, "Uldaman", "dungeon", "41-51", "Uldaman"},
-    {"Badlands", 0.657, 0.438, "Uldaman\n|cFF808080(Back Entrance)|r", "dungeon", "41-51", "Uldaman"},
+    {"Badlands", 0.657, 0.438, "Uldaman\n|cFF808080(Back Entrance)|r", "dungeon", "41-51", "Uldaman", nil, "UldamanBack"},
     {"BurningSteppes", 0.312, 0.365, "Upper Blackrock Spire\n|cFF808080(Burning Steppes)|r", "dungeon", "55-60", "BlackrockSpireUpper", "dropdown"},
     {"SearingGorge", 0.371, 0.833, "Upper Blackrock Spire\n|cFF808080(Searing Gorge)|r", "dungeon", "55-60", "BlackrockSpireUpper", "dropdown"},
     {"Stranglethorn", 0.420, 0.460, "Glittermurk Mines", "dungeon", "34-40", "GlittermurkMines"},
@@ -231,9 +240,8 @@ MMM_WDMDungeonEntrancePoints = {
     -- Kalimdor
     ----------------------------------------------------------------------------
 
-    -- "Cleft of Shadow" map of Orgrimmar (the city map itself is "Ogrimmar").
-    {"Ogrimmar1_", 0.703, 0.492, "Ragefire Chasm", "dungeon", "13-18", "RagefireChasm", "nolist"},
     {"WailingCavernsBarrens20_", 0.549, 0.669, "Wailing Caverns", "dungeon", "17-24", "WailingCaverns", "nolist"},
+    {"BlackfathomDeepsEntrance10_", 0.698, 0.445, "Blackfathom Deeps", "dungeon", "24-32", "BlackfathomDeeps", "nolist"},
     -- Maraudon has two outdoor cave maps, one portal on each.
     {"MaraudonOutside22_", 0.581, 0.324, "Maraudon\n|cFF808080(The Wicked Grotto)|r", "dungeon", "46-55", "Maraudon", "nolist"},
     {"MaraudonOutside21_", 0.788, 0.630, "Maraudon\n|cFF808080(Foulspore Cavern)|r", "dungeon", "46-55", "Maraudon", "nolist"},
@@ -244,7 +252,7 @@ MMM_WDMDungeonEntrancePoints = {
 
     {"DeadminesWestfall17_", 0.251, 0.510, "The Deadmines", "dungeon", "17-24", "TheDeadmines", "nolist"},
     {"GnomereganEntrance10_", 0.191, 0.856, "Gnomeregan", "dungeon", "29-38", "Gnomeregan", "nolist"},
-    {"GnomereganEntrance10_", 0.405, 0.207, "Gnomeregan\n|cFF808080(Workshop Entrance)|r", "dungeon", "29-38", "Gnomeregan", "nolist"},
+    {"GnomereganEntrance10_", 0.405, 0.207, "Gnomeregan\n|cFF808080(Workshop Entrance)|r", "dungeon", "29-38", "Gnomeregan", "nolist", "GnomereganWorkshop"},
     {"ScarletMonasteryEntrance13_", 0.683, 0.211, "Scarlet Monastery - Graveyard", "dungeon", "26-36", "SMGraveyard", "nolist"},
     {"ScarletMonasteryEntrance13_", 0.793, 0.603, "Scarlet Monastery - Library", "dungeon", "29-39", "SMLibrary", "nolist"},
     {"ScarletMonasteryEntrance13_", 0.848, 0.437, "Scarlet Monastery - Armory", "dungeon", "32-42", "SMArmory", "nolist"},
@@ -272,8 +280,9 @@ MMM_WDMDungeonEntrancePoints = {
 --                    does not match, the patch is not installed (or the ID is
 --                    taken by another map on this client) and the click falls
 --                    back to Atlas instead.
---   floor            dungeon floor (SetDungeonMapLevel) for dungeons that
---                    share one map between several Atlas pages.
+--   floor            dungeon floor (SetDungeonMapLevel), 1 if omitted. Needed
+--                    when several markers share one map (Blackrock Spire,
+--                    Scarlet Monastery, Stratholme).
 MMM_WDMDungeonMaps = {
     ----------------------------------------------------------------------------
     -- Kalimdor
@@ -296,19 +305,66 @@ MMM_WDMDungeonMaps = {
     ShadowfangKeep      = {764, "ShadowfangKeep"},
     TheStockade         = {690, "TheStockade"},
     Gnomeregan          = {691, "Gnomeregan"},
+    GnomereganWorkshop  = {691, "Gnomeregan", 3}, -- Launch Bay
     SMGraveyard         = {762, "ScarletMonastery", 1},
     SMLibrary           = {762, "ScarletMonastery", 2},
     SMArmory            = {762, "ScarletMonastery", 3},
     SMCathedral         = {762, "ScarletMonastery", 4},
     GlittermurkMines    = {9000, "GlittermurkMines"},
     Uldaman             = {692, "Uldaman"},
+    UldamanBack         = {692, "Uldaman"},       -- no entrance map, see MMM_DungeonEntranceMaps
     TheSunkenTemple     = {687, "TheTempleOfAtalHakkar"},
     Scholomance         = {763, "Scholomance"},
-    Stratholme          = {765, "Stratholme"}, -- live side
+    Stratholme          = {765, "Stratholme", 1}, -- live side
     StratholmeBack      = {765, "Stratholme", 2}, -- undead side
     BlackrockDepths     = {704, "BlackrockDepths"},
-    BlackrockSpireLower = {721, "BlackrockSpire", 1},
+    BlackrockSpireLower = {721, "BlackrockSpire", 4},
     BlackrockSpireUpper = {721, "BlackrockSpire", 4},
     MoltenCore          = {696, "MoltenCore"},
     BaradinHold         = {9001, "BaradinHold"},
+}
+
+-- =============================================================================
+-- Dungeon entrance map links (right-click)
+-- =============================================================================
+-- MMM_DungeonEntranceMaps[key] = { wdm = <map(s)>, atlas = "<Atlas map key>" }
+--
+-- key is the marker's wdmKey, or its atlasID when it has none (same keys as
+-- MMM_WDMDungeonMaps). Both fields are optional.
+--
+--   wdm    internal name of the WDM patch-N entrance map ("Caverns and Mines"),
+--          e.g. "DeadminesWestfall17_". A list of {name, label} tables gives a
+--          choice popup when a dungeon has several entrance maps.
+--   atlas  Atlas Project Epoch entrance page, e.g. "TheDeadminesEnt".
+--
+-- Right-click order: WDM entrance map if that patch is installed, else the
+-- Atlas entrance page. A dungeon with neither available just does the normal
+-- left-click action, and the click hint is not shown for it.
+local SM_ENTRANCE = {wdm = "ScarletMonasteryEntrance13_", atlas = "SMEnt"}
+local GNOMEREGAN_ENTRANCE = {wdm = "GnomereganEntrance10_", atlas = "GnomereganEnt"}
+local BRM_DEPTHS  = {wdm = "BlackrockMountain16_", atlas = "BlackrockSpireEnt"}
+local BRM_SPIRE   = {wdm = "BlackrockMountain14_", atlas = "BlackrockSpireEnt"}
+
+MMM_DungeonEntranceMaps = {
+    -- Kalimdor
+    WailingCaverns      = {wdm = "WailingCavernsBarrens20_", atlas = "WailingCavernsEnt"},
+    BlackfathomDeeps    = {wdm = "BlackfathomDeepsEntrance10_", atlas = "BlackfathomDeepsEnt"},
+    Maraudon            = {wdm = {{"MaraudonOutside22_", "The Wicked Grotto"},
+                                  {"MaraudonOutside21_", "Foulspore Cavern"}},
+                           atlas = "MaraudonEnt"},
+
+    -- Eastern Kingdoms
+    TheDeadmines        = {wdm = "DeadminesWestfall17_", atlas = "TheDeadminesEnt"},
+    Gnomeregan          = GNOMEREGAN_ENTRANCE,
+    GnomereganWorkshop  = GNOMEREGAN_ENTRANCE,
+    SMGraveyard         = SM_ENTRANCE,
+    SMLibrary           = SM_ENTRANCE,
+    SMArmory            = SM_ENTRANCE,
+    SMCathedral         = SM_ENTRANCE,
+    Uldaman             = {wdm = "Uldaman18_", atlas = "UldamanEnt"},
+    TheSunkenTemple     = {atlas = "TheSunkenTempleEnt"},
+    BlackrockDepths     = BRM_DEPTHS,
+    MoltenCore          = BRM_DEPTHS,
+    BlackrockSpireLower = BRM_SPIRE,
+    BlackrockSpireUpper = BRM_SPIRE,
 }

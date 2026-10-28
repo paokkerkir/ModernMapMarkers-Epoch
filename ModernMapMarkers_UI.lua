@@ -167,12 +167,14 @@ local MENU_BUTTON_HEIGHT = 22
 local MENU_BUTTON_WIDTH  = 160
 local MENU_PADDING       = 8
 
-function MMM.ShowDestMenu(pin)
+-- destList (optional): { {zoneName, label}, ... } to show instead of the
+-- pin's own transport destinations (used for dungeon entrance maps).
+function MMM.ShowDestMenu(pin, destList)
     if not destMenu then CreateDestMenu() end
     if destMenuPin == pin and destMenu:IsShown() then HideDestMenu(); return end
 
     destMenuPin = pin
-    local dest  = pin.transportDest
+    local dest  = destList or pin.transportDest
     local count = #dest
 
     for i = 1, count do

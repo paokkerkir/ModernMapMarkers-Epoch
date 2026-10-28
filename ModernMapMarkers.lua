@@ -112,6 +112,7 @@ local pcall       = pcall
 -- ============================================================
 
 local pointsByMap        = {}        -- internalZoneName -> { entry, entry, ... }
+local wdmEntranceMaps    = {}        -- internal names of the WDM entrance maps (patch-N)
 local zoneNameToMap      = {}        -- internalZoneName -> {continent, zoneIdx}
 local markerPool         = {}
 local markerPoolCount    = 0
@@ -266,6 +267,9 @@ local function BuildPointIndex()
     -- panel (GetFlatData) is unaffected.
     if MMM_WDMDungeonEntrancePoints then
         IndexPoints(MMM_WDMDungeonEntrancePoints)
+        for i = 1, #MMM_WDMDungeonEntrancePoints do
+            wdmEntranceMaps[MMM_WDMDungeonEntrancePoints[i][1]] = true
+        end
     end
 end
 
@@ -329,6 +333,7 @@ local function ReturnMarkerToPool(marker)
     marker.markerKind      = nil
     marker.atlasID         = nil
     marker.wdmMap          = nil
+    marker.entranceKey     = nil
     marker.transportDest   = nil
     marker.isDualDest      = nil
     marker.isMultiDest     = nil
@@ -547,7 +552,10 @@ local function OpenWdmDungeonMap(link)
     local opened = called and GetMapInfo() == mapName
 
     if opened then
-        if floor and GetNumDungeonMapLevels and SetDungeonMapLevel
+        -- Always select a floor: the client may keep the floor last viewed
+        -- on this map (e.g. Stratholme back gate, then main gate).
+        floor = floor or 1
+        if GetNumDungeonMapLevels and SetDungeonMapLevel
            and GetNumDungeonMapLevels() >= floor then
             SetDungeonMapLevel(floor)
         end
@@ -671,6 +679,91 @@ local function OnAtlasClick()
     end
 end
 
+-- Opens an Atlas page by map key (used for entrance pages). Returns true if
+-- Atlas is loaded and has that map. Same open sequence as OnAtlasClick.
+local function OpenAtlasMap(atlasKey)
+    if not (atlasKey and ATLAS_DROPDOWNS and AtlasFrame and AtlasOptions) then
+        return false
+    end
+    if not ResolveAtlasID(atlasKey) then return false end
+
+    PlaySoundFile(SOUND_CLICK)
+    if WorldMapFrame:IsVisible() and IsWorldMapFullscreen() then
+        HideUIPanel(WorldMapFrame)
+    end
+    WithContinentSort(function()
+        local atlasType, atlasZone = ResolveAtlasID(atlasKey)
+        if not atlasType then return end
+        AtlasOptions.AtlasType = atlasType
+        AtlasOptions.AtlasZone = atlasZone
+        Atlas_Refresh()
+        AtlasFrame:SetFrameStrata("FULLSCREEN")
+        local savedAutoSelect = AtlasOptions.AtlasAutoSelect
+        AtlasOptions.AtlasAutoSelect = false
+        AtlasFrame:Show()
+        AtlasOptions.AtlasAutoSelect = savedAutoSelect
+        mmmAtlasType = atlasType
+        mmmAtlasZone = atlasZone
+        mmmZoneID = ATLAS_DROPDOWNS[atlasType] and ATLAS_DROPDOWNS[atlasType][atlasZone]
+    end)
+    return true
+end
+
+-- Entrance options of a dungeon (MMM_DungeonEntranceMaps[key]).
+-- Returns wdmList, atlasKey - either may be nil:
+--   wdmList  { {mapName, label}, ... } of WDM entrance maps this client has
+--            (WDM patch-N adds them as zones of the continent, so they show
+--            up in zoneNameToMap), or nil.
+--   atlasKey the Atlas entrance page, only if Atlas is loaded and has it.
+-- buildNav: build the zone map first if needed. Only safe from a click, never
+-- while markers are being drawn (BuildZoneNav moves the world map).
+local function GetEntranceOptions(key, buildNav)
+    local def = key and MMM_DungeonEntranceMaps and MMM_DungeonEntranceMaps[key]
+    if not def then return nil, nil end
+
+    if buildNav and not zoneNavBuilt then BuildZoneNav() end
+
+    local wdmList
+    if def.wdm and zoneNavBuilt then
+        local entries = def.wdm
+        if type(entries) == "string" then entries = { { entries } } end
+        for i = 1, #entries do
+            if zoneNameToMap[entries[i][1]] then
+                wdmList = wdmList or {}
+                tinsert(wdmList, entries[i])
+            end
+        end
+    end
+
+    local atlasKey
+    if def.atlas and ATLAS_DROPDOWNS and AtlasFrame and AtlasOptions
+       and ResolveAtlasID(def.atlas) then
+        atlasKey = def.atlas
+    end
+
+    return wdmList, atlasKey
+end
+
+-- Right-click on a dungeon/raid marker: open its entrance map.
+-- WDM entrance map first (a popup when there are several), then the Atlas
+-- entrance page. With neither available it acts like a left-click.
+local function OnEntranceClick()
+    local wdmList, atlasKey = GetEntranceOptions(this.entranceKey, true)
+
+    if wdmList then
+        if #wdmList == 1 then
+            MMM.NavigateToTransportDest(wdmList[1][1], GetMapInfo())
+        else
+            MMM.ShowDestMenu(this, wdmList)
+        end
+        return
+    end
+
+    if atlasKey and OpenAtlasMap(atlasKey) then return end
+
+    OnAtlasClick()
+end
+
 local function StartPinHighlight(pin)
     pin.highlight:SetAlpha(0)
     pin.findTimer = 0
@@ -783,7 +876,7 @@ end
 -- Pin creation
 -- ============================================================
 
-local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlasID, kind, dest)
+local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlasID, kind, dest, wdmKey, isEntranceMap)
     -- "dropdown" sentinel: comment shown only in Find Marker, not on the map.
     local displayName = nil
     if dest == "dropdown" then
@@ -834,8 +927,9 @@ local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlas
     pin.markerInfo      = tooltipInfo
     pin.markerKind      = kind
     pin.atlasID         = atlasID
-    pin.wdmMap          = (kind == "dungeon" or kind == "raid") and atlasID
-                          and MMM_WDMDungeonMaps and MMM_WDMDungeonMaps[atlasID]
+    wdmKey = wdmKey or atlasID
+    pin.wdmMap          = (kind == "dungeon" or kind == "raid") and wdmKey
+                          and MMM_WDMDungeonMaps and MMM_WDMDungeonMaps[wdmKey]
                           or nil
     pin.transportDest   = dest
     pin.isDualDest      = isDual
@@ -855,6 +949,18 @@ local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlas
         local b = type(dest[2]) == "table" and dest[2][1] or dest[2]
         pin.markerHint = "|cFFFFD700Left-click:|r " .. a
                       .. "   |cFFFFD700Right-click:|r " .. b
+    end
+
+    -- Dungeon/raid markers on the world map: left-click opens the dungeon
+    -- map, right-click the entrance map. Hint only if an entrance map exists.
+    -- (Markers on the WDM entrance maps themselves only have the left-click.)
+    if (kind == "dungeon" or kind == "raid") and not isEntranceMap and wdmKey then
+        local wdmList, atlasKey = GetEntranceOptions(wdmKey)
+        if wdmList or atlasKey then
+            pin.entranceKey = wdmKey
+            pin.markerHint  = "|cFFFFD700Left-click:|r Dungeon map   "
+                           .. "|cFFFFD700Right-click:|r Entrance map"
+        end
     end
 
     pin:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -881,7 +987,11 @@ local function CreateMapPin(x, y, size, texture, tooltipText, tooltipInfo, atlas
             or this.markerKind == "flightpath" then
             OnTransportClick()
         elseif this.atlasID then
-            OnAtlasClick()
+            if arg1 == "RightButton" and this.entranceKey then
+                OnEntranceClick()
+            else
+                OnAtlasClick()
+            end
         end
     end)
     pin:Show()
@@ -959,6 +1069,7 @@ local function UpdateMarkers()
 
     local relevantPoints = pointsByMap[currentName]
     if not relevantPoints then return end
+    local onEntranceMap = wdmEntranceMaps[currentName]
 
     local db               = ModernMapMarkersDB
     local showDungeons     = db.showDungeons
@@ -1048,7 +1159,7 @@ local function UpdateMarkers()
             local pin = CreateMapPin(
                 data[2] * mapWidth, data[3] * mapHeight,
                 size, texture,
-                data[4], info, data[7], kind, data[8])
+                data[4], info, data[7], kind, data[8], data[9], onEntranceMap)
             activeMarkersCount = activeMarkersCount + 1
             activeMarkers[activeMarkersCount] = pin
         end
